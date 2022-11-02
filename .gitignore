@@ -1,0 +1,9 @@
+# ignore all logs
+*.log
+*.pickle
+DB6
+__pycache__
+.DS_Store
+*DS_Store
+**/gmon.out
+.idea
