@@ -18,9 +18,7 @@ from utils.train import train
 from utils.configs import configs_pretrain, configs_finetune
 
 PROCESSES = 1
-device = 'cpu'
 save_model_every_n = 20
-dataset_folder = './DB6'
 name_prefix = f"vit_dim64_h8_"
 
 def extend_results(results, result):
@@ -193,6 +191,8 @@ if __name__ == '__main__':
     except FileNotFoundError:
         print("Missing configuration file: Add config.json file")
         exit(0)
+    device = config['device']
+    dataset_folder = config['dataset_dir']
 
     if len(os.listdir(config['dataset_dir'])) == 0:
         for subject in np.arange(1,11):
