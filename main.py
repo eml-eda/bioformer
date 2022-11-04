@@ -7,6 +7,7 @@ import torch.multiprocessing as multiprocessing
 multiprocessing.set_start_method("spawn", force=True)
 from pickle import dump, load
 from time import time
+import json 
 
 from utils.db6 import DB6MultiSession
 from utils.utils import SuperSet
@@ -186,11 +187,17 @@ else:
 configs_chunks_idx_finetune = list(range(len(configs_chunks_finetune)))
 
 if __name__ == '__main__':
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+    except FileNotFoundError:
+        print("Missing configuration file: Add config.json file")
+        exit(0)
 
-    if len(os.listdir('DB6')) == 0:
+    if len(os.listdir(config['dataset_dir'])) == 0:
         for subject in np.arange(1,11):
             for part in ['a', 'b']:
-                download_file(subject, part, download_dir = './DB6', keep_zip = 'no')
+                download_file(subject, part, download_dir = config['dataset_dir'], keep_zip = 'no')
     else:
         print('Dataset already in ./DB6 directory')
 
