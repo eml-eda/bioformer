@@ -199,7 +199,7 @@ if __name__ == '__main__':
             for part in ['a', 'b']:
                 download_file(subject, part, download_dir = config['dataset_dir'], keep_zip = 'no')
     else:
-        print('Dataset already in ./DB6 directory')
+        print('Dataset already in {} directory'.format(config['dataset_dir']))
 
     pretrain = True
     finetune = True
