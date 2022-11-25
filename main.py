@@ -3,8 +3,6 @@ import torch
 from torch.utils.data import DataLoader
 from sklearn.model_selection import ParameterGrid
 import numpy as np
-import torch.multiprocessing as multiprocessing
-multiprocessing.set_start_method("spawn", force=True)
 from pickle import dump, load
 from time import time
 import json 
@@ -204,12 +202,11 @@ if __name__ == '__main__':
 
     pretrain = True
     finetune = True
-    main_pretraining(0)
     if pretrain == True:
         results = None
-        with multiprocessing.Pool(PROCESSES) as pool:
-            for result in pool.imap_unordered(main_pretraining,  configs_chunks_idx_pretrain):
-                results = extend_results(results, result)
+        for i in configs_chunks_idx_pretrain:
+            result = main_pretraining(i)
+            results = extend_results(results, result)
         pickle_name = f'results_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)
