@@ -16,7 +16,7 @@ from utils.train import train
 from utils.configs import configs_pretrain, configs_finetune
 
 PROCESSES = 1
-save_model_every_n = 20
+save_model_every_n = 50
 name_prefix = f"vit_dim64_h8_"
 
 def extend_results(results, result):
@@ -37,7 +37,9 @@ def main_pretraining(chunk_idx):
     assert len(add_sub) == 1
     ds_add_sub = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=add_sub, sessions=list(range(n_sessions)), minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
     test_ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=[n_sessions], minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
-
+    minmax_picklename = f'ds_minmax_sessions={n_sessions}subjects={ ",".join(map(str, subjects)) }.pickle'
+    if not os.path.isfile(minmax_picklename):
+        dump([ds.X_min, ds.X_max], open(minmax_picklename, 'wb'))
     losses_accs_ = []
     n_params_ = []
     for i, config in enumerate(configs, start=1):
@@ -50,7 +52,7 @@ def main_pretraining(chunk_idx):
         print(f"Run {i}/{len(configs)}")
         print(config)
         print(f"Params: {n_params / 10**6:.3f}M")
-        losses_accs = train(net=net, net_name=f"{name_prefix}_{chunk_idx}_{i}", ds=ds, k=0, bootstrap='no', training_config=config['training_config'], test_ds=test_ds, ds_add_sub=ds_add_sub, device = device, save_model_every_n = save_model_every_n)
+        losses_accs = train(net=net, net_name=f"{name_prefix}_{chunk_idx}", ds=ds, k=0, bootstrap='no', training_config=config['training_config'], test_ds=test_ds, ds_add_sub=ds_add_sub, device = device, save_model_every_n = save_model_every_n)
         losses_accs_.append(losses_accs)
         print()
     return [configs, n_params_, losses_accs_]
@@ -85,7 +87,7 @@ def main_finetune(chunk_idx):
                             for i in test_sessions]
     results_ = []
     for i, config in enumerate(configs, start=1):
-        config['pretrained'] = f"../vit_dim64_h8_{subject - 1}_1_epoch100.pth"
+        config['pretrained'] = f"../vit_dim64_h8_{subject - 1}_epoch100.pth"
         results = {}
         results['subject'] = subject
         results['steady'] = steady
@@ -95,11 +97,11 @@ def main_finetune(chunk_idx):
         results['test_sessions'] = test_sessions
         result = {}
         net = ViT(**config)
-        config['pretrained'] = f"vit_dim64_h8_{9 - (subject - 1)}_1_epoch100.pth"
+        config['pretrained'] = f"vit_dim64_h8_{9 - (subject - 1)}_epoch100.pth"
         if config['pretrained'] is not None:
             net.load_state_dict(torch.load(config['pretrained']))
             print("Loaded checkpoint", config['pretrained'])
-        losses_accs = train(net=net, net_name=f"{name_prefix}_{chunk_idx}_{i}", ds=ds, k=k, bootstrap=bootstrap, training_config=config['training_config'], test_ds=test_ds_5, device = device, save_model_every_n = save_model_every_n)
+        losses_accs = train(net=net, net_name=f"{name_prefix}_{chunk_idx}", ds=ds, k=k, bootstrap=bootstrap, training_config=config['training_config'], test_ds=test_ds_5, device = device, save_model_every_n = save_model_every_n)
         result['losses_accs'] = losses_accs
         criterion = nn.CrossEntropyLoss()
         test_losses, y_preds, y_trues = [], [], []
