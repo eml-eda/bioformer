@@ -31,31 +31,20 @@ def main_pretraining(chunk_idx):
     subjects = configs[0]['subjects']
     n_sessions = configs[0]['sessions']
     minmax = True
-    if configs[0]["pretrained"] is not None:
-        minmax_picklename = f'ds_minmax_sessions={n_sessions}subjects=1,2,3,4,5,6,7,8,9,10.pickle'
-        print("Loading minmax from", minmax_picklename)
-        minmax = load(open(minmax_picklename, 'rb'))
     ds_config = dict(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True)
     ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True).to(device)
     add_sub = [a for a in range(1,11) if a not in subjects]
     assert len(add_sub) == 1
     ds_add_sub = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=add_sub, sessions=list(range(n_sessions)), minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
     test_ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=[n_sessions], minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
-    minmax_picklename = f'ds_minmax_sessions={n_sessions}subjects={ ",".join(map(str, subjects)) }.pickle'
-    if not os.path.isfile(minmax_picklename):
-        dump([ds.X_min, ds.X_max], open(minmax_picklename, 'wb'))
 
     losses_accs_ = []
     n_params_ = []
     for i, config in enumerate(configs, start=1):
-
         config["chunk_idx"] = chunk_idx
         config["chunk_i"] = i
         config["mlp_dim"] = config["dim"] * 2
         net = ViT(**config)
-        if config['pretrained'] is not None:
-            net.load_state_dict(torch.load(config['pretrained']))
-            print("Loaded checkpoint", config['pretrained'])
         n_params = sum([param.nelement() for param in net.parameters()])
         n_params_.append(n_params)
         print(f"Run {i}/{len(configs)}")
@@ -85,8 +74,8 @@ def main_finetune(chunk_idx):
         print("Loading minmax from", minmax_picklename)
         minmax = load(open(minmax_picklename, 'rb'))
 
-    ds = DB6MultiSession(folder=os.path.expanduser('~/DB6'), subjects=[subject], sessions=train_sessions, steady=steady, n_classes=n_classes, minmax=minmax, image_like_shape=True).to('cuda')
-    test_ds_5 = DB6MultiSession(folder=os.path.expanduser('~/DB6'), subjects=[subject], sessions=test_sessions, steady=steady, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True).to('cuda')
+    ds = DB6MultiSession(folder=os.path.expanduser('~/DB6'), subjects=[subject], sessions=train_sessions, steady=steady, n_classes=n_classes, minmax=minmax, image_like_shape=True).to(device)
+    test_ds_5 = DB6MultiSession(folder=os.path.expanduser('~/DB6'), subjects=[subject], sessions=test_sessions, steady=steady, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True).to(device)
 
     test_datasets_steady = [DB6MultiSession(folder=os.path.expanduser('~/DB6'), subjects=[subject], sessions=[i], 
                                             steady=True, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True) \

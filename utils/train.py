@@ -26,13 +26,13 @@ def train(net, net_name, ds, k, bootstrap, training_config, test_ds=None, ds_add
     losses_accs = []
 
     for epoch in range(epochs):
-        if 'each-epoch' in bootstrap or train_loader is None:
-            if '0' in bootstrap:
-                train_ds, val_ds = ds.split_0(total_folds=2, val_fold=k)
-            elif '1' in bootstrap:
-                train_ds, val_ds = ds.split_1(total_folds=2, val_fold=k)
-            else:
-                train_ds, val_ds = ds.split(total_folds=2, val_fold=k)
+        # if 'each-epoch' in bootstrap or train_loader is None:
+        #     if '0' in bootstrap:
+        #         train_ds, val_ds = ds.split_0(total_folds=2, val_fold=k)
+        #     elif '1' in bootstrap:
+        #         train_ds, val_ds = ds.split_1(total_folds=2, val_fold=k)
+        #     else:
+        #         train_ds, val_ds = ds.split(total_folds=2, val_fold=k)
             train_ds, val_ds = ds, [ds[0]]
             if ds_add_sub != None:
                 train_ds_add_sub, _ = ds_add_sub.split(total_folds=2, val_fold=k)
@@ -60,17 +60,17 @@ def train(net, net_name, ds, k, bootstrap, training_config, test_ds=None, ds_add
         net.eval()
         train_loss, (y_pred, y_true) = get_loss_preds(net, criterion, train_loader_, device = device)
         train_preds = y_pred.bincount(minlength=(y_true.max() + 1))
-        train_acc = (y_true == y_pred).sum() / len(y_true)
+        train_acc = (y_true == y_pred).sum().numpy() / len(y_true) * 100
         val_loss, (y_pred, y_true) = get_loss_preds(net, criterion, val_loader, device = device)
         val_preds = y_pred.bincount(minlength=(y_true.max() + 1))
-        val_acc = (y_true == y_pred).sum() / len(y_true)
+        val_acc = (y_true == y_pred).sum().numpy() / len(y_true) * 100
         test_loss, test_preds, test_acc = 0, '', 0
         if test_ds is not None:
             test_loss, (y_pred, y_true) = get_loss_preds(net, criterion, test_loader, device = device)
             test_preds = y_pred.bincount(minlength=(y_true.max() + 1))
-            test_acc = (y_true == y_pred).sum() / len(y_true)
+            test_acc = (y_true == y_pred).sum().numpy() / len(y_true) * 100
         with np.printoptions(precision=3, suppress=True):
-            print(f"Epoch {epoch + 1:02d}, Train loss {train_loss:.3f}, Train acc {train_acc:.3f} {train_preds:},\n{' '* 20}Val loss {val_loss:.3f} Val acc {val_acc:.3f}, {val_preds},\n{' '* 40}Test loss {test_loss:.3f} Test acc {test_acc:.3f}, {test_preds}")
+            print(f"Epoch {epoch + 1:02d}, Train loss {train_loss:.3f}, Train acc {train_acc:.3f} \nTest loss {test_loss:.3f} Test acc {test_acc:.3f}, {test_preds}")
             losses_accs.append({'train_loss': float(train_loss), 'train_acc': float(train_acc), 'val_loss': float(val_loss), 'val_acc': float(val_acc), 'test_loss': float(test_loss), 'test_acc': float(test_acc)})
         if ((epoch + 1) % save_model_every_n) == 0:
             torch.save(net.state_dict(), f"{net_name}_epoch{epoch+1}.pth")
