@@ -26,13 +26,13 @@ def train(net, net_name, ds, k, bootstrap, training_config, test_ds=None, ds_add
     losses_accs = []
 
     for epoch in range(epochs):
-        # if 'each-epoch' in bootstrap or train_loader is None:
-        #     if '0' in bootstrap:
-        #         train_ds, val_ds = ds.split_0(total_folds=2, val_fold=k)
-        #     elif '1' in bootstrap:
-        #         train_ds, val_ds = ds.split_1(total_folds=2, val_fold=k)
-        #     else:
-        #         train_ds, val_ds = ds.split(total_folds=2, val_fold=k)
+        if 'each-epoch' in bootstrap or train_loader is None:
+            # if '0' in bootstrap:
+            #     train_ds, val_ds = ds.split_0(total_folds=2, val_fold=k)
+            # elif '1' in bootstrap:
+            #     train_ds, val_ds = ds.split_1(total_folds=2, val_fold=k)
+            # else:
+            #     train_ds, val_ds = ds.split(total_folds=2, val_fold=k)
             train_ds, val_ds = ds, [ds[0]]
             if ds_add_sub != None:
                 train_ds_add_sub, _ = ds_add_sub.split(total_folds=2, val_fold=k)
