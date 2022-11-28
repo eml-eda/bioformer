@@ -207,15 +207,15 @@ if __name__ == '__main__':
         for i in configs_chunks_idx_pretrain:
             result = main_pretraining(i)
             results = extend_results(results, result)
-        pickle_name = f'results_{time():.0f}.pickle'
+        pickle_name = f'results_pretrain_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)
     
     if finetune == True:
         results = None
-        with multiprocessing.Pool(PROCESSES) as pool:
-            for result in pool.imap_unordered(main_finetune, configs_chunks_idx_finetune):
-                results = extend_results(results, result)
-        pickle_name = f'results_{time():.0f}.pickle'
+        for i in configs_chunks_idx_finetune:
+            result = main_finetune(i)
+            results = extend_results(results, result)
+        pickle_name = f'results_finetune_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)
