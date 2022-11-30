@@ -87,7 +87,7 @@ def main_finetune(chunk_idx):
                             for i in test_sessions]
     results_ = []
     for i, config in enumerate(configs, start=1):
-        config['pretrained'] = f"../artifacts/vit_dim64_h8_{subject - 1}_epoch100.pth"
+        config['pretrained'] = f"../artifacts/vit_dim64_h8__{subject - 1}_epoch100.pth"
         results = {}
         results['subject'] = subject
         results['steady'] = steady
@@ -97,7 +97,7 @@ def main_finetune(chunk_idx):
         results['test_sessions'] = test_sessions
         result = {}
         net = ViT(**config)
-        config['pretrained'] = f"artifacts/vit_dim64_h8_{9 - (subject - 1)}_epoch100.pth"
+        config['pretrained'] = f"artifacts/vit_dim64_h8__{9 - (subject - 1)}_epoch100.pth"
         if config['pretrained'] is not None:
             net.load_state_dict(torch.load(config['pretrained']))
             print("Loaded checkpoint", config['pretrained'])
