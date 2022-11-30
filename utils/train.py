@@ -36,7 +36,7 @@ def train(net, net_name, ds, k, bootstrap, training_config, test_ds=None, ds_add
             train_ds, val_ds = ds, [ds[0]]
             if ds_add_sub != None:
                 train_ds_add_sub, _ = ds_add_sub.split(total_folds=2, val_fold=k)
-            train_ds = SuperSet(train_ds, train_ds_add_sub)
+                train_ds = SuperSet(train_ds, train_ds_add_sub)
             if train_loader is None:
                 print("Dataset lengths:", len(train_ds), len(val_ds))
             pin_mem = (train_ds[0][0].device.type == 'cpu')

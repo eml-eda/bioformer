@@ -101,7 +101,7 @@ def main_finetune(chunk_idx):
         if config['pretrained'] is not None:
             net.load_state_dict(torch.load(config['pretrained']))
             print("Loaded checkpoint", config['pretrained'])
-        losses_accs = train(net=net, net_name=f"{name_prefix}_{chunk_idx}", ds=ds, k=k, bootstrap=bootstrap, training_config=config['training_config'], test_ds=test_ds_5, device = device, save_model_every_n = save_model_every_n)
+        losses_accs = train(net=net, net_name=f"{name_prefix}_{chunk_idx}", ds=ds, k=0, bootstrap=bootstrap, training_config=config['training_config'], test_ds=test_ds_5, device = device, save_model_every_n = save_model_every_n)
         result['losses_accs'] = losses_accs
         criterion = nn.CrossEntropyLoss()
         test_losses, y_preds, y_trues = [], [], []
