@@ -3,6 +3,7 @@ from torch import nn, einsum
 import torch.nn.functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
+import numpy as np 
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
@@ -84,40 +85,68 @@ class Transformer(nn.Module):
 
 
 class ViT(nn.Module):
-    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3,
+    def __init__(self, *, image_size, patch_size1, patch_size2, patch_size3, ch_1, ch_2, ch_3, tcn_layers, num_classes, dim_patch, depth, heads, pool = 'cls', channels = 3,
                  dim_head = 64, dropout = 0., emb_dropout = 0., use_cls_token=True, 
                  sessions="ignore", subjects="ignore", training_config="ignore", pretrained="ignore", chunk_idx="ignore", chunk_i="ignore"):
         super().__init__()
         image_height, image_width = pair(image_size)
-        patch_height, patch_width = pair(patch_size)
-        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
-        num_patches = (image_height // patch_height) * (image_width // patch_width)
-        patch_dim = channels * patch_height * patch_width
+        patch_height1, patch_width1 = pair(patch_size1)
+        patch_height2, patch_width2 = pair(patch_size2)
+        patch_height3, patch_width3 = pair(patch_size3)
+        patch_width = [patch_width3, patch_width2, patch_width1]
+        ch = [ch_3, ch_2, ch_1]
+        if patch_width1 != None:
+            assert image_height % patch_height1 == 0 and image_width % patch_width1 == 0, 'Image dimensions must be divisible by the patch size.'
+        if patch_width2 != None:
+            assert image_height % patch_height2 == 0 and image_width % patch_width2 == 0, 'Image dimensions must be divisible by the patch size.'
+        if patch_width3 != None:
+            assert image_height % patch_height3 == 0 and image_width % patch_width3 == 0, 'Image dimensions must be divisible by the patch size.'
+        num_patches = (image_height // patch_height1) * (image_width // patch_width1)
+        if patch_width2 != None:
+            num_patches = (image_height // (patch_height1 * patch_height2)) * (image_width // (patch_width1 * patch_width2))
+        if patch_width3 != None:
+            num_patches = (image_height // (patch_height1 * patch_height2 * patch_height3)) * (image_width // (patch_width1 * patch_width2 * patch_width3))
+        patch_dim = ch_1 * patch_height1 * patch_width1
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
-        self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
-            nn.Linear(patch_dim, dim),
-        )
+        layerlist = []
+        ch_previous = channels
+        for i in np.arange(3):
+            if patch_width[i] != None:
+                if tcn_layers == 2:
+                    layerlist.append(nn.Conv2d(ch_previous, ch[i], kernel_size = (1,3), padding = "same")) 
+                    layerlist.append(nn.ReLU(inplace=True))  # Apply activation function - ReLU
+                    layerlist.append(nn.BatchNorm2d(ch[i]))  # Apply batch normalization
+                if i != 2:
+                    layerlist.append(nn.Conv2d(ch[i], ch[i], kernel_size = (1,patch_width[i]), stride = (1,patch_width[i]))) 
+                    layerlist.append(nn.ReLU(inplace=True))  # Apply activation function - ReLU
+                    layerlist.append(nn.BatchNorm2d(ch[i]))  # Apply batch normalization
+                ch_previous = ch[i]
+
+
+        layerlist.append(Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height1, p2 = patch_width1))
+        layerlist.append(nn.Linear(patch_dim, dim_patch))
+        self.to_patch_embedding = nn.Sequential(*layerlist)
+
         bound = 1 / (patch_dim ** .5)
-        nn.init.uniform_(self.to_patch_embedding[1].weight, -bound, bound)
-        nn.init.uniform_(self.to_patch_embedding[1].bias, -bound, bound)
+        nn.init.uniform_(self.to_patch_embedding[-1].weight, -bound, bound)
+        nn.init.uniform_(self.to_patch_embedding[-1].bias, -bound, bound)
         self.use_cls_token = use_cls_token
         if self.use_cls_token:
-            self.pos_embedding = nn.Parameter(torch.empty(1, num_patches + 1, dim))
+            self.pos_embedding = nn.Parameter(torch.empty(1, num_patches + 1, dim_patch))
         else:
-            self.pos_embedding = nn.Parameter(torch.empty(1, num_patches, dim))
+            self.pos_embedding = nn.Parameter(torch.empty(1, num_patches, dim_patch))
         nn.init.normal_(self.pos_embedding, mean=0, std=.02)
-        self.cls_token = nn.Parameter(torch.empty(1, 1, dim))
+        self.cls_token = nn.Parameter(torch.empty(1, 1, dim_patch))
         nn.init.zeros_(self.cls_token)
         self.dropout = nn.Dropout(emb_dropout)
-        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+        self.transformer = Transformer(dim_patch, depth, heads, dim_head, dim_patch * 2, dropout)
         self.pool = pool
         self.to_latent = nn.Identity()
         self.mlp_head = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, num_classes)
+            nn.LayerNorm(dim_patch),
+            nn.Linear(dim_patch, num_classes)
         )
-        bound = 1 / (dim ** .5)
+        bound = 1 / (dim_patch ** .5)
         nn.init.uniform_(self.mlp_head[1].weight, -bound, bound)
         nn.init.uniform_(self.mlp_head[1].bias, -bound, bound)
 

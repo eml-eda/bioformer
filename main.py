@@ -18,7 +18,7 @@ from utils.configs import configs_pretrain, configs_finetune
 
 PROCESSES = 1
 save_model_every_n = 50
-name_prefix = f"artifacts/vit_dim64_h8_"
+name_prefix = f"artifacts/vit_prova_"
 
 def extend_results(results, result):
     if results is None:
@@ -34,7 +34,8 @@ def main_pretraining(chunk_idx):
     minmax = True
     ds_config = dict(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True)
     ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True).to(device)
-    add_sub = [a for a in range(1,11) if a not in subjects]
+    # add_sub = [a for a in range(1,11) if a not in subjects]
+    add_sub = [2]
     assert len(add_sub) == 1
     ds_add_sub = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=add_sub, sessions=list(range(n_sessions)), minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
     test_ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=[n_sessions], minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
@@ -46,7 +47,6 @@ def main_pretraining(chunk_idx):
     for i, config in enumerate(configs, start=1):
         config["chunk_idx"] = chunk_idx
         config["chunk_i"] = i
-        config["mlp_dim"] = config["dim"] * 2
         net = ViT(**config)
         n_params = sum([param.nelement() for param in net.parameters()])
         n_params_.append(n_params)
@@ -88,7 +88,7 @@ def main_finetune(chunk_idx):
                             for i in test_sessions]
     results_ = []
     for i, config in enumerate(configs, start=1):
-        config['pretrained'] = f"../artifacts/vit_dim64_h8__{subject - 1}_epoch100.pth"
+        config['pretrained'] = f"../{name_prefix}_{subject - 1}_epoch100.pth"
         results = {}
         results['subject'] = subject
         results['steady'] = steady
@@ -98,7 +98,7 @@ def main_finetune(chunk_idx):
         results['test_sessions'] = test_sessions
         result = {}
         net = ViT(**config)
-        config['pretrained'] = f"artifacts/vit_dim64_h8__{9 - (subject - 1)}_epoch100.pth"
+        config['pretrained'] = f"{name_prefix}_{9 - (subject - 1)}_epoch100.pth"
         if config['pretrained'] is not None:
             net.load_state_dict(torch.load(config['pretrained']))
             print("Loaded checkpoint", config['pretrained'])
@@ -195,7 +195,7 @@ if __name__ == '__main__':
     else:
         print('Dataset already in {} directory'.format(config['dataset_dir']))
 
-    pretrain = False
+    pretrain = True
     finetune = True
     if pretrain == True:
         results = None

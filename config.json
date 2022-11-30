@@ -1,5 +1,5 @@
 {
     "dataset_dir": "/baltic/users/shm_mon/DB6",
     "device": "cuda",
-    "gpu_number": "0"
+    "gpu_number": "1"
 }
