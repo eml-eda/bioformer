@@ -195,7 +195,7 @@ if __name__ == '__main__':
     else:
         print('Dataset already in {} directory'.format(config['dataset_dir']))
 
-    pretrain = True
+    pretrain = False
     finetune = True
     if pretrain == True:
         results = None
