@@ -76,13 +76,13 @@ def main_finetune(chunk_idx):
         print("Loading minmax from", minmax_picklename)
         minmax = load(open(minmax_picklename, 'rb'))
 
-    ds = DB6MultiSession(folder=os.path.expanduser('~/DB6'), subjects=[subject], sessions=train_sessions, steady=steady, n_classes=n_classes, minmax=minmax, image_like_shape=True).to(device)
-    test_ds_5 = DB6MultiSession(folder=os.path.expanduser('~/DB6'), subjects=[subject], sessions=test_sessions, steady=steady, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True).to(device)
+    ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=train_sessions, steady=steady, n_classes=n_classes, minmax=minmax, image_like_shape=True).to(device)
+    test_ds_5 = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=test_sessions, steady=steady, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True).to(device)
 
-    test_datasets_steady = [DB6MultiSession(folder=os.path.expanduser('~/DB6'), subjects=[subject], sessions=[i], 
+    test_datasets_steady = [DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=[i], 
                                             steady=True, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True) \
                             for i in test_sessions]
-    test_datasets = [DB6MultiSession(folder=os.path.expanduser('~/DB6'), subjects=[subject], sessions=[i], 
+    test_datasets = [DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=[i], 
                                      steady=False, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True) \
                             for i in test_sessions]
     results_ = []
@@ -105,6 +105,8 @@ def main_finetune(chunk_idx):
         result['losses_accs'] = losses_accs
         criterion = nn.CrossEntropyLoss()
         test_losses, y_preds, y_trues = [], [], []
+
+        torch.manual_seed(0)
         for test_ds in test_datasets_steady:
             test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
             test_loss, (y_pred, y_true) = get_loss_preds(net, criterion, test_loader, device = device)
@@ -116,6 +118,7 @@ def main_finetune(chunk_idx):
         result['y_trues_steady'] = y_trues
 
         test_losses, y_preds, y_trues = [], [], []
+        torch.manual_seed(0)
         for test_ds in test_datasets:
             test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
             test_loss, (y_pred, y_true) = get_loss_preds(net, criterion, test_loader, device = device)
@@ -191,7 +194,7 @@ if __name__ == '__main__':
     else:
         print('Dataset already in {} directory'.format(config['dataset_dir']))
 
-    pretrain = True
+    pretrain = False
     finetune = True
     if pretrain == True:
         results = None
