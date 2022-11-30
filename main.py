@@ -72,7 +72,7 @@ def main_finetune(chunk_idx):
     minmax = True
     if configs[0]["pretrained"] is not None:
         subs = ','.join([str(a) for a in range(1, 11) if a != subject])
-        minmax_picklename = f'ds_minmax_sessions={n_sessions}subjects={subs}.pickle'
+        minmax_picklename = f'artifacts/ds_minmax_sessions={n_sessions}subjects={subs}.pickle'
         print("Loading minmax from", minmax_picklename)
         minmax = load(open(minmax_picklename, 'rb'))
 
