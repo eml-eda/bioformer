@@ -1,5 +1,6 @@
 import os, sys
 import torch
+from torch import nn
 from torch.utils.data import DataLoader
 from sklearn.model_selection import ParameterGrid
 import numpy as np
