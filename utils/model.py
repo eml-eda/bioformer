@@ -113,7 +113,7 @@ class ViT(nn.Module):
         for i in np.arange(3):
             if patch_width[i] != None:
                 if tcn_layers == 2:
-                    layerlist.append(nn.Conv2d(ch_previous, ch[i], kernel_size = (1,3), padding = "same")) 
+                    layerlist.append(nn.Conv2d(ch_previous, ch[i], kernel_size = (1,3), padding = (0,1))) 
                     layerlist.append(nn.ReLU(inplace=True))  # Apply activation function - ReLU
                     layerlist.append(nn.BatchNorm2d(ch[i]))  # Apply batch normalization
                 if i != 2:

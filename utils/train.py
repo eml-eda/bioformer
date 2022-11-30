@@ -39,7 +39,7 @@ def train(net, net_name, ds, k, bootstrap, training_config, test_ds=None, ds_add
                 train_ds = SuperSet(train_ds, train_ds_add_sub)
             if train_loader is None:
                 print("Dataset lengths:", len(train_ds), len(val_ds))
-            pin_mem = (train_ds[0][0].device.type == device)
+            pin_mem = (train_ds[0][0].device.type == 'cpu')
             train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, pin_memory=pin_mem, drop_last=True)
             train_loader_ = DataLoader(train_ds, batch_size=1024, shuffle=False, pin_memory=pin_mem, drop_last=False)
             val_loader = DataLoader(val_ds, batch_size=1024, shuffle=False, pin_memory=pin_mem, drop_last=False)
