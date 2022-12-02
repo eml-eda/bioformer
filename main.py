@@ -48,7 +48,8 @@ def main_pretraining(chunk_idx):
     for i, config in enumerate(configs, start=1):
         config["chunk_idx"] = chunk_idx
         config["chunk_i"] = i
-        net = TEMPONet(**config)
+        net = TEMPONet()
+        # net = TEMPONet(**config)
         n_params = sum([param.nelement() for param in net.parameters()])
         n_params_.append(n_params)
         print(f"Run {i}/{len(configs)}")
@@ -98,7 +99,8 @@ def main_finetune(chunk_idx):
         results['train_sessions'] = train_sessions
         results['test_sessions'] = test_sessions
         result = {}
-        net = TEMPONet(**config)
+        net = TEMPONet()
+        # net = TEMPONet(**config)
         config['pretrained'] = f"{name_prefix}_{9 - (subject - 1)}_epoch100.pth"
         if config['pretrained'] is not None:
             net.load_state_dict(torch.load(config['pretrained']))

@@ -175,7 +175,7 @@ def get_conv_output_size(input_size, kernel_size, stride=1, padding=0, dilation=
 
 class TEMPONet(nn.Module):
     
-    def __init__(self, n_classes, input_size=300, input_channels=14):
+    def __init__(self, input_size=300, input_channels=14):
         super().__init__()
 
         self.conv1 = nn.Sequential(
@@ -240,7 +240,7 @@ class TEMPONet(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.5),
             
-            nn.Linear(128, n_classes),
+            nn.Linear(128, 8),
         )
         
 
