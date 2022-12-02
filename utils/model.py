@@ -165,3 +165,93 @@ class ViT(nn.Module):
         x = self.to_latent(x)
         x = self.mlp_head(x)
         return x
+
+
+# Formula: https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html#torch.nn.Conv1d
+def get_conv_output_size(input_size, kernel_size, stride=1, padding=0, dilation=1, **ignore):
+    tuple_to_int = lambda x: int(x[0]) if isinstance(x, tuple) else int(x)
+    kernel_size, stride, padding, dilation = tuple_to_int(kernel_size), tuple_to_int(stride), tuple_to_int(padding), tuple_to_int(dilation)
+    return int( ( (input_size + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1 )
+
+class TEMPONet(nn.Module):
+    
+    def __init__(self, n_classes, input_size=300, input_channels=14):
+        super().__init__()
+
+        self.conv1 = nn.Sequential(
+            nn.Conv1d(input_channels, 32, 3, dilation=2, padding=2),
+            nn.BatchNorm1d(32),
+            nn.ReLU(),
+            nn.Conv1d(32, 32, 3, dilation=2, padding=2),
+            nn.BatchNorm1d(32),
+            nn.ReLU(),
+            nn.Conv1d(32, 64, 5, stride=1, padding=2),
+            torch.nn.AvgPool1d(2, stride=2, padding=0),
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
+        )
+
+        self.conv2 = nn.Sequential(
+            nn.Conv1d(64, 64, 3, dilation=4, padding=4),
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
+            nn.Conv1d(64, 64, 3, dilation=4, padding=4),
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
+            nn.Conv1d(64, 128, 5, stride=2, padding=2),
+            torch.nn.AvgPool1d(2, stride=2, padding=0),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+        )
+
+        self.conv3 = nn.Sequential(
+            nn.Conv1d(128, 128, 3, dilation=8, padding=8),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Conv1d(128, 128, 3, dilation=8, padding=8),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Conv1d(128, 128, 5, stride=4, padding=2),
+            torch.nn.AvgPool1d(2, stride=2, padding=0),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+        )
+        
+        def get_fc_input_size():
+            is_layer_conv = lambda x: isinstance(x, nn.Conv1d) or isinstance(x, nn.AvgPool1d)
+            layers = list(filter(is_layer_conv, [*self.conv1, *self.conv2, *self.conv3]))
+            
+            output_size = input_size
+            last_layer_output_planes = 1
+            for layer in layers:
+                output_size = get_conv_output_size(output_size, **vars(layer))
+                last_layer_output_planes = layer.out_channels if hasattr(layer, "out_channels") else last_layer_output_planes
+            
+            return output_size * last_layer_output_planes
+
+        self.fc = nn.Sequential(
+            nn.Linear(get_fc_input_size(), 256), # input=640
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            
+            nn.Linear(256, 128),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            
+            nn.Linear(128, n_classes),
+        )
+        
+
+    def forward(self, x):
+
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        
+        x = x.flatten(1)
+
+        x = self.fc(x)
+        
+        return x

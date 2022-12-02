@@ -18,7 +18,7 @@ class SuperSet(Dataset):
         
 @torch.no_grad()
 def get_loss_preds(net, criterion, loader, device = "gpu"):
-    y_pred, y_true = [], []
+    y_pred, y_true, out = [], [], []
     loss = 0
     for X_batch, Y_batch in loader:
         X_batch, Y_batch = X_batch.to(device), Y_batch.to(device)
@@ -27,6 +27,7 @@ def get_loss_preds(net, criterion, loader, device = "gpu"):
         loss += criterion(outputs, Y_batch).item()
         y_pred.append(predicted)
         y_true.append(Y_batch)
+        out.append(outputs)
     y_pred, y_true = torch.cat(y_pred).cpu(), torch.cat(y_true).cpu()
     loss /= len(loader)
-    return loss, (y_pred, y_true)
+    return loss, (y_pred, y_true, out)

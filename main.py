@@ -11,6 +11,7 @@ import json
 from utils.db6 import DB6MultiSession
 from utils.utils import SuperSet
 from utils.model import ViT as ViT
+from utils.model import TEMPONet as TEMPONet
 from utils.download_DB6 import download_file
 from utils.utils import get_loss_preds
 from utils.train import train 
@@ -18,7 +19,7 @@ from utils.configs import configs_pretrain, configs_finetune
 
 PROCESSES = 1
 save_model_every_n = 50
-name_prefix = f"artifacts/vit_prova_"
+name_prefix = f"artifacts/temponet_prova_"
 
 def extend_results(results, result):
     if results is None:
@@ -47,7 +48,7 @@ def main_pretraining(chunk_idx):
     for i, config in enumerate(configs, start=1):
         config["chunk_idx"] = chunk_idx
         config["chunk_i"] = i
-        net = ViT(**config)
+        net = TEMPONet(**config)
         n_params = sum([param.nelement() for param in net.parameters()])
         n_params_.append(n_params)
         print(f"Run {i}/{len(configs)}")
@@ -97,7 +98,7 @@ def main_finetune(chunk_idx):
         results['train_sessions'] = train_sessions
         results['test_sessions'] = test_sessions
         result = {}
-        net = ViT(**config)
+        net = TEMPONet(**config)
         config['pretrained'] = f"{name_prefix}_{9 - (subject - 1)}_epoch100.pth"
         if config['pretrained'] is not None:
             net.load_state_dict(torch.load(config['pretrained']))
@@ -105,30 +106,34 @@ def main_finetune(chunk_idx):
         losses_accs = train(net=net, net_name=f"{name_prefix}_{chunk_idx}", ds=ds, k=0, bootstrap=bootstrap, training_config=config['training_config'], test_ds=test_ds_5, device = device, save_model_every_n = save_model_every_n)
         result['losses_accs'] = losses_accs
         criterion = nn.CrossEntropyLoss()
-        test_losses, y_preds, y_trues = [], [], []
+        test_losses, y_preds, y_trues, outs = [], [], [], []
 
         torch.manual_seed(0)
         for test_ds in test_datasets_steady:
             test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
-            test_loss, (y_pred, y_true) = get_loss_preds(net, criterion, test_loader, device = device)
+            test_loss, (y_pred, y_true, out) = get_loss_preds(net, criterion, test_loader, device = device)
             test_losses.append(test_loss)
             y_preds.append(y_pred.cpu())
             y_trues.append(y_true.cpu())
+            outs.append(out.cpu())
         result['test_losses_steady'] = test_losses
         result['y_preds_steady'] = y_preds
         result['y_trues_steady'] = y_trues
+        result['outs_steady'] = outs
 
-        test_losses, y_preds, y_trues = [], [], []
+        test_losses, y_preds, y_trues, outs = [], [], [], []
         torch.manual_seed(0)
         for test_ds in test_datasets:
             test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
-            test_loss, (y_pred, y_true) = get_loss_preds(net, criterion, test_loader, device = device)
+            test_loss, (y_pred, y_true, out) = get_loss_preds(net, criterion, test_loader, device = device)
             test_losses.append(test_loss)
             y_preds.append(y_pred.cpu())
             y_trues.append(y_true.cpu())
+            outs.append(out.cpu())
         result['test_losses'] = test_losses
         result['y_preds'] = y_preds
         result['y_trues'] = y_trues
+        result['outs'] = outs
         results[f'val-fold'] = result
     results_.append(results)
     return [configs, results_]

@@ -58,15 +58,15 @@ def train(net, net_name, ds, k, bootstrap, training_config, test_ds=None, ds_add
         scheduler.step()
 
         net.eval()
-        train_loss, (y_pred, y_true) = get_loss_preds(net, criterion, train_loader_, device = device)
+        train_loss, (y_pred, y_true, out) = get_loss_preds(net, criterion, train_loader_, device = device)
         train_preds = y_pred.bincount(minlength=(y_true.max() + 1))
         train_acc = (y_true == y_pred).sum().numpy() / len(y_true) * 100
-        val_loss, (y_pred, y_true) = get_loss_preds(net, criterion, val_loader, device = device)
+        val_loss, (y_pred, y_true, out) = get_loss_preds(net, criterion, val_loader, device = device)
         val_preds = y_pred.bincount(minlength=(y_true.max() + 1))
         val_acc = (y_true == y_pred).sum().numpy() / len(y_true) * 100
         test_loss, test_preds, test_acc = 0, '', 0
         if test_ds is not None:
-            test_loss, (y_pred, y_true) = get_loss_preds(net, criterion, test_loader, device = device)
+            test_loss, (y_pred, y_true, out) = get_loss_preds(net, criterion, test_loader, device = device)
             test_preds = y_pred.bincount(minlength=(y_true.max() + 1))
             test_acc = (y_true == y_pred).sum().numpy() / len(y_true) * 100
         with np.printoptions(precision=3, suppress=True):
