@@ -178,42 +178,42 @@ class TEMPONet(nn.Module):
     def __init__(self, input_size=300, input_channels=14):
         super().__init__()
 
-        self.conv1 = nn.Sequential(
-            nn.Conv1d(input_channels, 32, 3, dilation=2, padding=2),
-            nn.BatchNorm1d(32),
+        self.conv1 = nn.Sequential(ù
+            nn.Conv2d(input_channels, 32, kernel_size = (1,3), dilation=(1,2), padding=(0,2)),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv1d(32, 32, 3, dilation=2, padding=2),
-            nn.BatchNorm1d(32),
+            nn.Conv2d(32, 32, kernel_size = (1,3), dilation=(1,2), padding=(0,2)),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv1d(32, 64, 5, stride=1, padding=2),
-            torch.nn.AvgPool1d(2, stride=2, padding=0),
-            nn.BatchNorm1d(64),
+            nn.Conv2d(32, 64, kernel_size = (1,5), stride = (1,2), padding=(0,2)),
+            torch.nn.AvgPool2d((1,2), stride=(1,2), padding=(0,0)),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
         )
 
         self.conv2 = nn.Sequential(
-            nn.Conv1d(64, 64, 3, dilation=4, padding=4),
-            nn.BatchNorm1d(64),
+            nn.Conv2d(64, 64, kernel_size = (1,3), dilation=(1,4), padding=(0,4)),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv1d(64, 64, 3, dilation=4, padding=4),
-            nn.BatchNorm1d(64),
+            nn.Conv2d(64, 64, kernel_size = (1,3), dilation=(1,4), padding=(0,4)),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv1d(64, 128, 5, stride=2, padding=2),
-            torch.nn.AvgPool1d(2, stride=2, padding=0),
-            nn.BatchNorm1d(128),
+            nn.Conv2d(64, 128, kernel_size = (1,5), stride = (1,2), padding=(0,2)),
+            torch.nn.AvgPool2d((1,2), stride=(1,2), padding=(0,0)),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
         )
 
         self.conv3 = nn.Sequential(
-            nn.Conv1d(128, 128, 3, dilation=8, padding=8),
-            nn.BatchNorm1d(128),
+            nn.Conv2d(128, 128, kernel_size = (1,3), dilation=(1,8), padding=(0,8)),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
-            nn.Conv1d(128, 128, 3, dilation=8, padding=8),
-            nn.BatchNorm1d(128),
+            nn.Conv2d(128, 128, kernel_size = (1,3), dilation=(1,8), padding=(0,8)),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
-            nn.Conv1d(128, 128, 5, stride=4, padding=2),
-            torch.nn.AvgPool1d(2, stride=2, padding=0),
-            nn.BatchNorm1d(128),
+            nn.Conv2d(128, 128, kernel_size = (1,5), stride = (1,4), padding=(0,2)),
+            torch.nn.AvgPool2d((1,2), stride=(1,2), padding=(0,0)),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
         )
         
