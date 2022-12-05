@@ -11,7 +11,7 @@ import os
 
 from .utils import SuperSet
 
-def windowing(X_instants, R_instants, Y_instants, v_Hz=2000, window_time_s=.150, relative_overlap=.7, steady=True, steady_margin_s=1.5):
+def windowing(X_instants, R_instants, Y_instants, v_Hz=2000, window_time_s=.150, relative_overlap=.9, steady=True, steady_margin_s=1.5):
     """
         steady=True, steady_margin_s=0 -> finestre dove sample tutti della stessa label (o solo movimento o solo rest)
         steady=True, steady_margin_s=1.5 -> finestre dove tagli i primi e ultimi 1.5s di movimento
@@ -29,7 +29,6 @@ def windowing(X_instants, R_instants, Y_instants, v_Hz=2000, window_time_s=.150,
 
     overlap_pixels = round(v_Hz * relative_overlap * window_time_s)
     slide = (N - overlap_pixels)
-    
     M_instants, C = X_instants.shape
     # M = Numero di finestre
     M = (M_instants - N) // slide + 1

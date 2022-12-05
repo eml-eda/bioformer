@@ -19,7 +19,7 @@ from utils.configs import configs_pretrain, configs_finetune
 
 PROCESSES = 1
 save_model_every_n = 50
-name_prefix = f"artifacts/temponet_prova_"
+name_prefix = f"None"
 
 def extend_results(results, result):
     if results is None:
@@ -28,15 +28,24 @@ def extend_results(results, result):
         results[i].extend(result[i])
     return results
 
-def main_pretraining(chunk_idx):
+def main_pretraining(chunk_idx, args):
     configs = configs_chunks_pretrain[chunk_idx]
+    configs[0]["depth"] = args.depth
+    configs[0]["heads"] = args.heads
+    configs[0]["dim_head"] = args.dim_head
+    configs[0]["ch_1"] = args.ch_1
+    configs[0]["ch_2"] = args.ch_2
+    configs[0]["ch_3"] = args.ch_3
+    configs[0]["patch_size1"] = (1, args.patch_size1)
+    configs[0]["patch_size2"] = (1, args.patch_size2)
+    configs[0]["patch_size3"] = (1, args.patch_size3)
+    configs[0]["tcn_layers"] = args.tcn_layers
     subjects = configs[0]['subjects']
     n_sessions = configs[0]['sessions']
     minmax = True
     ds_config = dict(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True)
     ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True).to(device)
-    # add_sub = [a for a in range(1,11) if a not in subjects]
-    add_sub = [2]
+    add_sub = [a for a in range(1,11) if a not in subjects]
     assert len(add_sub) == 1
     ds_add_sub = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=add_sub, sessions=list(range(n_sessions)), minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
     test_ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=[n_sessions], minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
@@ -48,8 +57,10 @@ def main_pretraining(chunk_idx):
     for i, config in enumerate(configs, start=1):
         config["chunk_idx"] = chunk_idx
         config["chunk_i"] = i
-        net = TEMPONet()
-        # net = TEMPONet(**config)
+        if args.network == "TEMPONet":
+            net = TEMPONet()
+        elif args.network == "ViT":
+            net = ViT(**config)
         n_params = sum([param.nelement() for param in net.parameters()])
         n_params_.append(n_params)
         print(f"Run {i}/{len(configs)}")
@@ -60,8 +71,18 @@ def main_pretraining(chunk_idx):
         print()
     return [configs, n_params_, losses_accs_]
 
-def main_finetune(chunk_idx):
+def main_finetune(chunk_idx, args):
     configs = configs_chunks_finetune[chunk_idx]
+    configs[0]["depth"] = args.depth
+    configs[0]["heads"] = args.heads
+    configs[0]["dim_head"] = args.dim_head
+    configs[0]["ch_1"] = args.ch_1
+    configs[0]["ch_2"] = args.ch_2
+    configs[0]["ch_3"] = args.ch_3
+    configs[0]["patch_size1"] = (1, args.patch_size1)
+    configs[0]["patch_size2"] = (1, args.patch_size2)
+    configs[0]["patch_size3"] = (1, args.patch_size3)
+    configs[0]["tcn_layers"] = args.tcn_layers
     subject = configs[0]['subjects']
     n_sessions = configs[0]['sessions']
     train_sessions = list(range(configs[0]['sessions']))
@@ -99,8 +120,10 @@ def main_finetune(chunk_idx):
         results['train_sessions'] = train_sessions
         results['test_sessions'] = test_sessions
         result = {}
-        net = TEMPONet()
-        # net = TEMPONet(**config)
+        if args.network == "TEMPONet":
+            net = TEMPONet()
+        elif args.network == "ViT":
+            net = ViT(**config)
         config['pretrained'] = f"{name_prefix}_{9 - (subject - 1)}_epoch100.pth"
         if config['pretrained'] is not None:
             net.load_state_dict(torch.load(config['pretrained']))
@@ -189,14 +212,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # Add an argument to the parser
     parser.add_argument('--network', choices=['TEMPONet', 'ViT'], default = "ViT", type=str)
-    parser.add_argument('--tcn_layers', choices = [1, 2], type=int)
-    parser.add_argument('--blocks', choices = [1, 2, 3], type=int)
-    parser.add_argument('--dim_head', choices = [8, 16, 32, 64], type=int)
-    parser.add_argument('--heads', choices = [1, 2, 4, 8], type=int)
-    parser.add_argument('--depth', choices = [1, 2, 4], type=int)
+    parser.add_argument('--tcn_layers', choices = [1, 2], default = 1, type=int)
+    parser.add_argument('--blocks', choices = [1, 2, 3], default = 1, type=int)
+    parser.add_argument('--dim_head', choices = [8, 16, 32, 64], default = 32, type=int)
+    parser.add_argument('--heads', choices = [1, 2, 4, 8], default = 8, type=int)
+    parser.add_argument('--depth', choices = [1, 2, 4], default = 1, type=int)
+    parser.add_argument('--patch_size1', choices = [1, 3, 5, 10], default = 10, type=int)
+    parser.add_argument('--patch_size2', choices = [None, 1, 3, 5, 10], default = None, type=int)
+    parser.add_argument('--patch_size3', choices = [None, 1, 3, 5, 10], default = None, type=int)
+    parser.add_argument('--ch_1', default = 14, type=int)
+    parser.add_argument('--ch_2', default = None, type=int)
+    parser.add_argument('--ch_3', default = None, type=int)
 
     # Parse the command-line arguments
     args = parser.parse_args()
+    if args.network == "TEMPONet":
+        name_prefix = f"artifacts/temponet_"
+    else:
+        name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
     try:
         with open('config.json', 'r') as f:
             config = json.load(f)
@@ -219,17 +252,17 @@ if __name__ == '__main__':
     if pretrain == True:
         results = None
         for i in configs_chunks_idx_pretrain:
-            result = main_pretraining(i)
+            result = main_pretraining(i, args)
             results = extend_results(results, result)
-        pickle_name = f'results_pretrain_{time():.0f}.pickle'
+        pickle_name = f'results_pretrain_{name_prefix}_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)
     
     if finetune == True:
         results = None
         for i in configs_chunks_idx_finetune:
-            result = main_finetune(i)
+            result = main_finetune(i, args)
             results = extend_results(results, result)
-        pickle_name = f'results_finetune_{time():.0f}.pickle'
+        pickle_name = f'results_finetune_{name_prefix}_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)
