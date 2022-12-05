@@ -31,7 +31,7 @@ def windowing(X_instants, R_instants, Y_instants, v_Hz=2000, window_time_s=.150,
     slide = (N - overlap_pixels)
     M_instants, C = X_instants.shape
     # M = Numero di finestre
-    M = (M_instants - N) // slide + 1
+    M = (M_instants - N) // slide + 1 * int(((M_instants - N) % slide)!=0)
     
     # La label dovrebbe essere quello indicato nell'ultimo istante
     #Y_windows = Y_instants[-1 + N : M_instants : slide]
