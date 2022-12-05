@@ -218,7 +218,7 @@ class TEMPONet(nn.Module):
         )
         
         def get_fc_input_size():
-            is_layer_conv = lambda x: isinstance(x, nn.Conv1d) or isinstance(x, nn.AvgPool1d)
+            is_layer_conv = lambda x: isinstance(x, nn.Conv2d) or isinstance(x, nn.AvgPool2d)
             layers = list(filter(is_layer_conv, [*self.conv1, *self.conv2, *self.conv3]))
             
             output_size = input_size
@@ -230,7 +230,7 @@ class TEMPONet(nn.Module):
             return output_size * last_layer_output_planes
 
         self.fc = nn.Sequential(
-            nn.Linear(get_fc_input_size(), 256), # input=640
+            nn.Linear(256, 256), # input=640
             nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Dropout(0.5),

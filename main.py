@@ -185,6 +185,18 @@ else:
 configs_chunks_idx_finetune = list(range(len(configs_chunks_finetune)))
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    # Add an argument to the parser
+    parser.add_argument('--network', choices=['TEMPONet', 'ViT'], default = "ViT", type=str)
+    parser.add_argument('--tcn_layers', choices = [1, 2], type=int)
+    parser.add_argument('--blocks', choices = [1, 2, 3], type=int)
+    parser.add_argument('--dim_head', choices = [8, 16, 32, 64], type=int)
+    parser.add_argument('--heads', choices = [1, 2, 4, 8], type=int)
+    parser.add_argument('--depth', choices = [1, 2, 4], type=int)
+
+    # Parse the command-line arguments
+    args = parser.parse_args()
     try:
         with open('config.json', 'r') as f:
             config = json.load(f)
