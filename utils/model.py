@@ -178,7 +178,7 @@ class TEMPONet(nn.Module):
     def __init__(self, input_size=300, input_channels=14):
         super().__init__()
 
-        self.conv1 = nn.Sequential(ù
+        self.conv1 = nn.Sequential(
             nn.Conv2d(input_channels, 32, kernel_size = (1,3), dilation=(1,2), padding=(0,2)),
             nn.BatchNorm2d(32),
             nn.ReLU(),
