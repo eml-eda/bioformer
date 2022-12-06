@@ -238,8 +238,8 @@ if __name__ == '__main__':
         exit(0)
     device = config['device']
     dataset_folder = config['dataset_dir']
-    if device == "cuda":
-        os.environ["CUDA_VISIBLE_DEVICES"]=config["gpu_number"]
+    #if device == "cuda":
+    #    os.environ["CUDA_VISIBLE_DEVICES"]=config["gpu_number"]
     if len(os.listdir(config['dataset_dir'])) == 0:
         for subject in np.arange(1,11):
             for part in ['a', 'b']:
