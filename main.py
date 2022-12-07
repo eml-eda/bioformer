@@ -225,6 +225,9 @@ if __name__ == '__main__':
     parser.add_argument('--ch_1', default = 14, type=int)
     parser.add_argument('--ch_2', default = 'None')
     parser.add_argument('--ch_3', default = 'None')
+    parser.add_argument('--subjects', default = 1, type = int)
+    parser.add_argument('--pretrain', default = 'True')
+    parser.add_argument('--finetune', default = 'False')
 
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -250,22 +253,37 @@ if __name__ == '__main__':
     else:
         print('Dataset already in {} directory'.format(config['dataset_dir']))
 
-    pretrain = True
-    finetune = True
+    if args.pretrain == 'True':
+        pretrain = True
+    else:
+        pretrain = False
+
+    if args.finetune == 'True':
+        finetune = True
+    else:
+        finetune = False
+
+    if args.subjects == 1:
+        i_begin = 0
+        i_end = 5
+    else:
+        i_begin = 5
+        i_end = 10
+
     if pretrain == True:
         results = None
-        for i in configs_chunks_idx_pretrain:
+        for i in configs_chunks_idx_pretrain[i_begin:i_end]:
             result = main_pretraining(i, args)
             results = extend_results(results, result)
-        pickle_name = f'results_pretrain_{name_prefix}_{time():.0f}.pickle'
+        pickle_name = f'{name_prefix}_results_pretrain_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)
     
     if finetune == True:
         results = None
-        for i in configs_chunks_idx_finetune:
+        for i in configs_chunks_idx_finetune[i_begin:i_end]:
             result = main_finetune(i, args)
             results = extend_results(results, result)
-        pickle_name = f'results_finetune_{name_prefix}_{time():.0f}.pickle'
+        pickle_name = f'{name_prefix}_results_finetune_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)
