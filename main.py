@@ -275,7 +275,7 @@ if __name__ == '__main__':
         for i in configs_chunks_idx_pretrain[i_begin:i_end]:
             result = main_pretraining(i, args)
             results = extend_results(results, result)
-        pickle_name = f'{name_prefix}_results_pretrain_{time():.0f}.pickle'
+        pickle_name = f'{name_prefix}_results_pretrain_{i_begin}_{i_end}_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)
     
@@ -284,6 +284,6 @@ if __name__ == '__main__':
         for i in configs_chunks_idx_finetune[i_begin:i_end]:
             result = main_finetune(i, args)
             results = extend_results(results, result)
-        pickle_name = f'{name_prefix}_results_finetune_{time():.0f}.pickle'
+        pickle_name = f'{name_prefix}_results_finetune_{i_begin}_{i_end}_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)
