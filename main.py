@@ -16,6 +16,7 @@ from utils.download_DB6 import download_file
 from utils.utils import get_loss_preds
 from utils.train import train 
 from utils.configs import configs_pretrain, configs_finetune
+import argparse
 
 PROCESSES = 1
 save_model_every_n = 50
@@ -208,7 +209,8 @@ else:
 configs_chunks_idx_finetune = list(range(len(configs_chunks_finetune)))
 
 if __name__ == '__main__':
-    import argparse
+    print("Python Script starting")
+    
     parser = argparse.ArgumentParser()
     # Add an argument to the parser
     parser.add_argument('--network', choices=['TEMPONet', 'ViT'], default = "ViT", type=str)
@@ -218,11 +220,11 @@ if __name__ == '__main__':
     parser.add_argument('--heads', choices = [1, 2, 4, 8], default = 8, type=int)
     parser.add_argument('--depth', choices = [1, 2, 4], default = 1, type=int)
     parser.add_argument('--patch_size1', choices = [1, 3, 5, 10], default = 10, type=int)
-    parser.add_argument('--patch_size2', choices = [None, 1, 3, 5, 10], default = None, type=int)
-    parser.add_argument('--patch_size3', choices = [None, 1, 3, 5, 10], default = None, type=int)
+    parser.add_argument('--patch_size2', choices = [0, 1, 3, 5, 10], default = 0, type=int)
+    parser.add_argument('--patch_size3', choices = [0, 1, 3, 5, 10], default = 0, type=int)
     parser.add_argument('--ch_1', default = 14, type=int)
-    parser.add_argument('--ch_2', default = None, type=int)
-    parser.add_argument('--ch_3', default = None, type=int)
+    parser.add_argument('--ch_2', default = 'None')
+    parser.add_argument('--ch_3', default = 'None')
 
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -238,6 +240,7 @@ if __name__ == '__main__':
         exit(0)
     device = config['device']
     dataset_folder = config['dataset_dir']
+    
     #if device == "cuda":
     #    os.environ["CUDA_VISIBLE_DEVICES"]=config["gpu_number"]
     if len(os.listdir(config['dataset_dir'])) == 0:

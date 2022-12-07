@@ -95,23 +95,23 @@ class ViT(nn.Module):
         patch_height3, patch_width3 = pair(patch_size3)
         patch_width = [patch_width3, patch_width2, patch_width1]
         ch = [ch_3, ch_2, ch_1]
-        if patch_width1 != None:
+        if patch_width1 != 0:
             assert image_height % patch_height1 == 0 and image_width % patch_width1 == 0, 'Image dimensions must be divisible by the patch size.'
-        if patch_width2 != None:
+        if patch_width2 != 0:
             assert image_height % patch_height2 == 0 and image_width % patch_width2 == 0, 'Image dimensions must be divisible by the patch size.'
-        if patch_width3 != None:
+        if patch_width3 != 0:
             assert image_height % patch_height3 == 0 and image_width % patch_width3 == 0, 'Image dimensions must be divisible by the patch size.'
         num_patches = (image_height // patch_height1) * (image_width // patch_width1)
-        if patch_width2 != None:
+        if patch_width2 != 0:
             num_patches = (image_height // (patch_height1 * patch_height2)) * (image_width // (patch_width1 * patch_width2))
-        if patch_width3 != None:
+        if patch_width3 != 0:
             num_patches = (image_height // (patch_height1 * patch_height2 * patch_height3)) * (image_width // (patch_width1 * patch_width2 * patch_width3))
         patch_dim = ch_1 * patch_height1 * patch_width1
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
         layerlist = []
         ch_previous = channels
         for i in np.arange(3):
-            if patch_width[i] != None:
+            if patch_width[i] != 0:
                 if tcn_layers == 2:
                     layerlist.append(nn.Conv2d(ch_previous, ch[i], kernel_size = (1,3), padding = (0,1))) 
                     layerlist.append(nn.ReLU(inplace=True))  # Apply activation function - ReLU
