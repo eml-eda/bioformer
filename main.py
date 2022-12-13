@@ -46,7 +46,8 @@ def main_pretraining(chunk_idx, args):
     minmax = True
     ds_config = dict(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True)
     ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True).to(device)
-    add_sub = [a for a in range(1,11) if a not in subjects]
+    # add_sub = [a for a in range(1,11) if a not in subjects]
+    add_sub = [1]
     assert len(add_sub) == 1
     ds_add_sub = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=add_sub, sessions=list(range(n_sessions)), minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
     test_ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=[n_sessions], minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
@@ -223,12 +224,11 @@ if __name__ == '__main__':
     parser.add_argument('--patch_size2', choices = [0, 1, 3, 5, 10], default = 0, type=int)
     parser.add_argument('--patch_size3', choices = [0, 1, 3, 5, 10], default = 0, type=int)
     parser.add_argument('--ch_1', default = 14, type=int)
-    parser.add_argument('--ch_2', default = 'None')
-    parser.add_argument('--ch_3', default = 'None')
+    parser.add_argument('--ch_2', default = 'None', type=int)
+    parser.add_argument('--ch_3', default = 'None', type=int)
     parser.add_argument('--subjects', default = 1, type = int)
     parser.add_argument('--pretrain', default = 'True')
     parser.add_argument('--finetune', default = 'False')
-
     # Parse the command-line arguments
     args = parser.parse_args()
     if args.network == "TEMPONet":

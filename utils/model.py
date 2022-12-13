@@ -106,7 +106,6 @@ class ViT(nn.Module):
             num_patches = (image_height // (patch_height1 * patch_height2)) * (image_width // (patch_width1 * patch_width2))
         if patch_width3 != 0:
             num_patches = (image_height // (patch_height1 * patch_height2 * patch_height3)) * (image_width // (patch_width1 * patch_width2 * patch_width3))
-        patch_dim = ch_1 * patch_height1 * patch_width1
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
         layerlist = []
         ch_previous = channels
@@ -114,10 +113,16 @@ class ViT(nn.Module):
             if patch_width[i] != 0:
                 if tcn_layers == 2:
                     layerlist.append(nn.Conv2d(ch_previous, ch[i], kernel_size = (1,3), padding = (0,1))) 
+                    patch_dim = ch[i] * patch_width1
                     layerlist.append(nn.ReLU(inplace=True))  # Apply activation function - ReLU
                     layerlist.append(nn.BatchNorm2d(ch[i]))  # Apply batch normalization
                 if i != 2:
-                    layerlist.append(nn.Conv2d(ch[i], ch[i], kernel_size = (1,patch_width[i]), stride = (1,patch_width[i]))) 
+                    if tcn_layers == 2:
+                        layerlist.append(nn.Conv2d(ch[i], ch[i], kernel_size = (1,patch_width[i]), stride = (1,patch_width[i]))) 
+                        patch_dim = ch[i] * patch_width1
+                    else:
+                        layerlist.append(nn.Conv2d(ch_previous, ch[i], kernel_size = (1,patch_width[i]), stride = (1,patch_width[i]))) 
+                        patch_dim = ch[i] * patch_width1
                     layerlist.append(nn.ReLU(inplace=True))  # Apply activation function - ReLU
                     layerlist.append(nn.BatchNorm2d(ch[i]))  # Apply batch normalization
                 ch_previous = ch[i]
