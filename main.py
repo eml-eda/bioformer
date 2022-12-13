@@ -46,8 +46,8 @@ def main_pretraining(chunk_idx, args):
     minmax = True
     ds_config = dict(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True)
     ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=list(range(n_sessions)), minmax=minmax, n_classes='7+1', steady=True, image_like_shape=True).to(device)
-    # add_sub = [a for a in range(1,11) if a not in subjects]
-    add_sub = [1]
+    add_sub = [a for a in range(1,11) if a not in subjects]
+    #add_sub = [1]
     assert len(add_sub) == 1
     ds_add_sub = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=add_sub, sessions=list(range(n_sessions)), minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
     test_ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=subjects, sessions=[n_sessions], minmax=(ds.X_min, ds.X_max), n_classes='7+1', steady=True, image_like_shape=True).to(device)
