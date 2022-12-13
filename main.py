@@ -141,7 +141,7 @@ def main_finetune(chunk_idx, args):
             test_losses.append(test_loss)
             y_preds.append(y_pred.cpu())
             y_trues.append(y_true.cpu())
-            outs.append(out.cpu())
+            outs.append(out)
         result['test_losses_steady'] = test_losses
         result['y_preds_steady'] = y_preds
         result['y_trues_steady'] = y_trues
@@ -155,7 +155,7 @@ def main_finetune(chunk_idx, args):
             test_losses.append(test_loss)
             y_preds.append(y_pred.cpu())
             y_trues.append(y_true.cpu())
-            outs.append(out.cpu())
+            outs.append(out)
         result['test_losses'] = test_losses
         result['y_preds'] = y_preds
         result['y_trues'] = y_trues
