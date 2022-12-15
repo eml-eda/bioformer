@@ -232,9 +232,9 @@ if __name__ == '__main__':
     # Parse the command-line arguments
     args = parser.parse_args()
     if args.network == "TEMPONet":
-        name_prefix = f"artifacts/temponet_"
+        name_prefix = f"artifacts/temponet"
     else:
-        name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
+        name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.patch_size1}_{args.patch_size2}_{args.patch_size3}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
     try:
         with open('config.json', 'r') as f:
             config = json.load(f)

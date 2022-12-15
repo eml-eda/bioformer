@@ -13,6 +13,7 @@ folder = './artifacts'
 string_old = 'None'
 new_test = 0
 patient = 3
+
 class CPU_Unpickler(pickle.Unpickler):
     def find_class(self, module, name):
         if module == 'torch.storage' and name == '_load_from_bytes':
