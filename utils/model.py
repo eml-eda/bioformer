@@ -109,6 +109,7 @@ class ViT(nn.Module):
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
         layerlist = []
         ch_previous = channels
+        patch_dim = ch_1 * patch_width1
         for i in np.arange(3):
             if patch_width[i] != 0:
                 if tcn_layers == 2:
