@@ -11,4 +11,4 @@ __pycache__
 *.pth
 logs
 artifacts
-result*
+result_*
