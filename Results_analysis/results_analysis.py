@@ -9,7 +9,8 @@ import pickle
 import io 
 import matplotlib.pyplot as plt 
 
-folder = './artifacts'
+folder = './artifacts_patches'
+# folder = './artifacts'
 string_old = 'None'
 new_test = 0
 patient = 3
@@ -27,7 +28,7 @@ def multiplyList(myList):
         result = result * x
     return result
 
-def print_image4(accuracies, complexities, operations, network_type):
+def print_image_exploration(accuracies, complexities, operations, network_type):
     bar_width = 0.4 
     attention = [True if x == 0 else False for x in network_type ]
     frontend = [True if x == 1 else False for x in network_type ]
@@ -100,6 +101,123 @@ def print_image4(accuracies, complexities, operations, network_type):
     plt.ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
     plt.savefig("Pareto2.png", dpi=600)
 
+def print_image_patches(accuracies, complexities, operations, patches, dim_heads):
+    bar_width = 0.4 
+    acc_5 = [x for x, y in zip(accuracies, patches) if y == 5]
+    acc_10 = [x for x, y in zip(accuracies, patches) if y == 10]
+    acc_30 = [x for x, y in zip(accuracies, patches) if y == 30]
+    acc_60 = [x for x, y in zip(accuracies, patches) if y == 60]
+
+    cpl_5 = [x for x, y in zip(complexities, patches) if y == 5]
+    cpl_10 = [x for x, y in zip(complexities, patches) if y == 10]
+    cpl_30 = [x for x, y in zip(complexities, patches) if y == 30]
+    cpl_60 = [x for x, y in zip(complexities, patches) if y == 60]
+
+    opt_5 = [x for x, y in zip(operations, patches) if y == 5]
+    opt_10 = [x for x, y in zip(operations, patches) if y == 10]
+    opt_30 = [x for x, y in zip(operations, patches) if y == 30]
+    opt_60 = [x for x, y in zip(operations, patches) if y == 60]
+
+    colors = ['#AED6F1', '#21618C', '#E59866', '#D35400', '#7DCEA0', '#196F3D']
+    fig, (ax_left, ax_right) = plt.subplots(1,2,figsize=(11, 4))
+    plt.gcf().subplots_adjust(bottom=0.15,top=0.83)
+    ax_left.grid(axis='y')
+    ax1 = ax_left.scatter(opt_5, acc_5, marker = 'o', s = 80, edgecolor = 'k', color=colors[0])
+    ax2 = ax_left.scatter(opt_10, acc_10, marker = 'o', s = 80, edgecolor = 'k', color=colors[2])
+    ax4 = ax_left.scatter(opt_30, acc_30, marker = '^', s = 80, edgecolor = 'k', color=colors[5])
+    ax4 = ax_left.scatter(opt_60, acc_60, marker = 'd', s = 80, edgecolor = 'k', color=colors[3])
+    # plt.xscale('log')
+    # ax_left.legend(fontsize=12,ncol=2, loc='lower center', bbox_to_anchor=(0.5, 1.0))
+    # ax.set_xticks(index)
+    # ax.set_xticklabels(['','','1M', '10M'], fontsize=12)#, fontweight='bold')
+    ax_left.set_xlabel("Complexity [MACs]", fontsize=14, fontweight='bold')
+    ax_left.set_ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
+    # plt.show()
+		
+    bar_width = 0.4 
+    ax_right.grid(axis='y')
+    colors = ['#AED6F1', '#21618C', '#E59866', '#D35400', '#7DCEA0', '#196F3D']
+    ax1 = ax_right.scatter(cpl_5, acc_5, marker = 'o', s = 80, edgecolor = 'k', color=colors[0], label = f'Patchdim=5')
+    ax2 = ax_right.scatter(cpl_10, acc_10, marker = 'o', s = 80, edgecolor = 'k', color=colors[2], label = f'Patchdim=10')
+    ax4 = ax_right.scatter(cpl_30, acc_30, marker = '^', s = 80, edgecolor = 'k', color=colors[5], label = f'Patchdim=30')
+    ax4 = ax_right.scatter(cpl_60, acc_60, marker = 'd', s = 80, edgecolor = 'k', color=colors[3], label = f'Patchdim=60')
+    fig.legend(fontsize=12,ncol=2, loc='upper center', bbox_to_anchor=(0.5, 1.0))
+    ax_right.set_xlabel("Parameters[#]", fontsize=14, fontweight='bold')
+    ax_right.set_ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
+    fig.subplots_adjust(wspace=.4)
+    plt.savefig("Pareto_patch_cpl.png", dpi=600)
+
+# Very slow for many datapoints.  Fastest for many costs, most readable
+def is_pareto_efficient_dumb(costs):
+    """
+    Find the pareto-efficient points
+    :param costs: An (n_points, n_costs) array
+    :return: A (n_points, ) boolean array, indicating whether each point is Pareto efficient
+    """
+    import pdb;pdb.set_trace()
+    is_efficient = np.ones(costs.shape[0], dtype = bool)
+    for i, c in enumerate(costs): is_efficient[i] = np.all(np.any(costs[:i]>c, axis=1)) and np.all(np.any(costs[i+1:]>c, axis=1))
+    return is_efficient
+
+def print_image_patches2(accuracies, complexities, operations, patches, dim_heads):
+    bar_width = 0.4 
+    colors = ['#AED6F1', '#E59866', '#D35400', '#196F3D']
+    markers = ['o', '^', 'd']
+
+    fig, (ax_left, ax_right) = plt.subplots(1,2,figsize=(11, 4))
+    plt.gcf().subplots_adjust(bottom=0.15,top=0.83)
+    ax_left.grid(axis='y')
+    ax_right.grid(axis='y')
+    ax_left.set_xlabel("Complexity [MACs]", fontsize=14, fontweight='bold')
+    ax_left.set_ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
+    ax_right.set_xlabel("Parameters[#]", fontsize=14, fontweight='bold')
+    ax_right.set_ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
+    fig.subplots_adjust(wspace=.4)
+    index_c_plot = 0
+    index_m_plot = 0
+    for i in np.arange(len(accuracies)):
+        if patches[i] == 5:
+            index_c = 0
+        elif patches[i] == 10:
+            index_c = 1
+        elif patches[i] == 30:
+            index_c = 2
+        elif patches[i] == 60:
+            index_c = 3
+        if dim_heads[i] == 8:
+            index_m = 0
+        elif dim_heads[i] == 16:
+            index_m = 1
+        elif dim_heads[i] == 32:
+            index_m = 2
+        if index_m == 0:
+            ax_right.scatter(complexities[i], accuracies[i], marker = markers[index_m], s = 80, edgecolor = 'k', color=colors[index_c], label = 'Patch_dim = {}'.format(patches[i]))
+        if index_c == 3:
+            ax_right.scatter(complexities[i], accuracies[i], marker = markers[index_m], s = 80, edgecolor = 'k', color='k', label = 'Model = {}'.format(index_m))
+        ax_left.scatter(operations[i], accuracies[i], marker = markers[index_m], s = 80, edgecolor = 'k', color=colors[index_c])
+        ax_right.scatter(complexities[i], accuracies[i], marker = markers[index_m], s = 80, edgecolor = 'k', color=colors[index_c])
+    index = np.where(is_pareto_efficient_dumb(np.asarray([complexities,accuracies]).transpose()))[0]
+    acc = []
+    compl = []
+    for ind in index:
+        acc.append(accuracies[ind])
+        compl.append(complexities[ind])
+    acc.sort()
+    compl.sort()
+    ax_right.plot(compl, acc, 'k--', label = 'Pareto Curve')
+
+    index = np.where(is_pareto_efficient_dumb(np.asarray([operations,accuracies]).transpose()))[0]
+    acc = []
+    compl = []
+    for ind in index:
+        acc.append(accuracies[ind])
+        compl.append(operations[ind])
+    acc.sort()
+    compl.sort()
+    ax_left.plot(compl, acc, 'k--')
+    fig.legend(fontsize=12,ncol=4, loc='upper center', bbox_to_anchor=(0.5, 1.0))
+    plt.savefig("Pareto_patch.png", dpi=600)
+
 def ops_calculator(image_dimension, ch_initial, blocks, tcn_layers, dim_patch, dim_head, heads, depth, patch, ch):
     ops = 0
     for bl in np.arange(blocks):
@@ -139,6 +257,8 @@ if __name__ == '__main__':
     operations = []
     network_type = []
     name = []
+    patches = []
+    dim_heads = []
     for pickle_name in os.listdir(folder):
         if 'result' in pickle_name and 'finetune' in pickle_name:
             results_paper = CPU_Unpickler(open(os.path.join(folder,pickle_name), 'rb')).load()
@@ -189,8 +309,10 @@ if __name__ == '__main__':
             print(f"Accuracy of subject {subject}: {acc}")
         if subject == 10:
             print(f"Accuracy Total: {acc_overall/10}\n")
-            accuracies.append(acc_overall/10)
+            accuracies.append(acc_overall.numpy()/10)
             name.append(pickle_name)
+            patches.append(patch_size1[1])
+            dim_heads.append(dim_head)
             if pickle_name.split('_')[0] == 'temponet':
                 
                 complexities.append(461512)
@@ -216,10 +338,12 @@ if __name__ == '__main__':
 
                 ops = ops_calculator(300, 14, blocks, tcn_layers, dim_patch, dim_head, heads, depth, patch, ch)
                 operations.append(ops) 
-    import pdb;pdb.set_trace()
-    print_image4(accuracies, complexities, operations, network_type)
-    plt.scatter(complexities,accuracies)
-    plt.savefig("prova_cpl.png")
-    plt.figure()
-    plt.scatter(operations, accuracies)
-    plt.savefig("prova_ops.png")
+    if 'patches' in folder:
+        print_image_patches2(accuracies, complexities, operations, patches, dim_heads)
+    else:
+        print_image_exploration(accuracies, complexities, operations, network_type)
+    accuracies
+    complexities
+    operations
+    patches
+    dim_heads
