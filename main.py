@@ -15,7 +15,7 @@ from utils.model import TEMPONet as TEMPONet
 from utils.download_DB6 import download_file
 from utils.utils import get_loss_preds
 from utils.train import train 
-from utils.configs import configs_pretrain, configs_finetune
+from utils.configs import configs_pretrain, configs_finetune, configs_finetune_nopretrain
 import argparse
 
 PROCESSES = 1
@@ -72,6 +72,93 @@ def main_pretraining(chunk_idx, args):
         losses_accs_.append(losses_accs)
         print()
     return [configs, n_params_, losses_accs_]
+
+def main_finetune_nopretraining(chunk_idx, args):
+    configs = configs_chunks_finetune[chunk_idx]
+    configs[0]["depth"] = args.depth
+    configs[0]["heads"] = args.heads
+    configs[0]["dim_head"] = args.dim_head
+    configs[0]["ch_1"] = args.ch_1
+    configs[0]["ch_2"] = args.ch_2
+    configs[0]["ch_3"] = args.ch_3
+    configs[0]["patch_size1"] = (1, args.patch_size1)
+    configs[0]["patch_size2"] = (1, args.patch_size2)
+    configs[0]["patch_size3"] = (1, args.patch_size3)
+    configs[0]["tcn_layers"] = args.tcn_layers
+    subject = configs[0]['subjects']
+    n_sessions = configs[0]['sessions']
+    train_sessions = list(range(configs[0]['sessions']))
+    test_sessions = list(range(configs[0]['sessions'], 10))
+    steady=True
+    n_classes='7+1'
+    bootstrap='no'
+    print("Training subject", subject)
+    print("Steady", steady)
+    print("Bootstrap", bootstrap)
+    minmax = True
+    if configs[0]["pretrained"] is not None:
+        subs = ','.join([str(a) for a in range(1, 11) if a != subject])
+        minmax_picklename = f'artifacts/ds_minmax_sessions={n_sessions}subjects={subs}.pickle'
+        print("Loading minmax from", minmax_picklename)
+        minmax = load(open(minmax_picklename, 'rb'))
+
+    ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=train_sessions, steady=steady, n_classes=n_classes, minmax=minmax, image_like_shape=True).to(device)
+    test_ds_5 = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=test_sessions, steady=steady, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True).to(device)
+
+    test_datasets_steady = [DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=[i], 
+                                            steady=True, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True) \
+                            for i in test_sessions]
+    test_datasets = [DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=[i], 
+                                     steady=False, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True) \
+                            for i in test_sessions]
+    results_ = []
+    for i, config in enumerate(configs, start=1):
+        results = {}
+        results['subject'] = subject
+        results['steady'] = steady
+        results['n_classes'] = n_classes
+        results['bootstrap'] = bootstrap
+        results['train_sessions'] = train_sessions
+        results['test_sessions'] = test_sessions
+        result = {}
+        if args.network == "TEMPONet":
+            net = TEMPONet()
+        elif args.network == "ViT":
+            net = ViT(**config)
+        losses_accs = train(net=net, net_name=f"{name_prefix}_{chunk_idx}", ds=ds, k=0, bootstrap=bootstrap, training_config=config['training_config'], test_ds=test_ds_5, device = device, save_model_every_n = save_model_every_n)
+        result['losses_accs'] = losses_accs
+        criterion = nn.CrossEntropyLoss()
+        test_losses, y_preds, y_trues, outs = [], [], [], []
+
+        torch.manual_seed(0)
+        for test_ds in test_datasets_steady:
+            test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
+            test_loss, (y_pred, y_true, out) = get_loss_preds(net, criterion, test_loader, device = device)
+            test_losses.append(test_loss)
+            y_preds.append(y_pred.cpu())
+            y_trues.append(y_true.cpu())
+            outs.append(out)
+        result['test_losses_steady'] = test_losses
+        result['y_preds_steady'] = y_preds
+        result['y_trues_steady'] = y_trues
+        result['outs_steady'] = outs
+
+        test_losses, y_preds, y_trues, outs = [], [], [], []
+        torch.manual_seed(0)
+        for test_ds in test_datasets:
+            test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
+            test_loss, (y_pred, y_true, out) = get_loss_preds(net, criterion, test_loader, device = device)
+            test_losses.append(test_loss)
+            y_preds.append(y_pred.cpu())
+            y_trues.append(y_true.cpu())
+            outs.append(out)
+        result['test_losses'] = test_losses
+        result['y_preds'] = y_preds
+        result['y_trues'] = y_trues
+        result['outs'] = outs
+        results[f'val-fold'] = result
+    results_.append(results)
+    return [configs, results_]
 
 def main_finetune(chunk_idx, args):
     configs = configs_chunks_finetune[chunk_idx]
@@ -188,7 +275,7 @@ else:
 configs_chunks_idx_pretrain = list(range(len(configs_chunks_pretrain)))
 
 
-configs = list(ParameterGrid({k: (v if isinstance(v, list) else [v]) for k, v in configs_finetune.items()}))
+configs = list(ParameterGrid({k: (v if isinstance(v, list) else [v]) for k, v in configs_finetune_nopretrain.items()}))
 configs = sorted(configs, key=lambda x: (x["subjects"], x["sessions"]) )
 configs_chunks_finetune = []
 dataset_combinations = set(map(lambda x: (x["subjects"], x["sessions"]), configs))
@@ -282,8 +369,9 @@ if __name__ == '__main__':
     if finetune == True:
         results = None
         for i in configs_chunks_idx_finetune[i_begin:i_end]:
-            result = main_finetune(i, args)
+            # result = main_finetune(i, args)
+            result = main_finetune_nopretraining(i, args)
             results = extend_results(results, result)
-        pickle_name = f'{name_prefix}_results_finetune_{i_begin}_{i_end}_{time():.0f}.pickle'
+        pickle_name = f'{name_prefix}_results_finetune_nopretraining_{i_begin}_{i_end}_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
         print("Saved", pickle_name)

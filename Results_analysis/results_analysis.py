@@ -9,8 +9,6 @@ import pickle
 import io 
 import matplotlib.pyplot as plt 
 
-folder = './artifacts_patches'
-# folder = './artifacts'
 string_old = 'None'
 new_test = 0
 patient = 3
@@ -45,107 +43,62 @@ def print_image_exploration(accuracies, complexities, operations, network_type):
     opt_frontend = [x for x, y in zip(operations, frontend) if y == True]
     opt_TEMPONet = [x for x, y in zip(operations, TEMPONet) if y == True]
     colors = ['#AED6F1', '#21618C', '#E59866', '#D35400', '#7DCEA0', '#196F3D']
-    fig, ax = plt.subplots(figsize=(8, 4))
-    plt.gcf().subplots_adjust(bottom=0.15,top=0.83)
-    plt.grid(axis='y')
-    ax1 = plt.scatter(opt_attention, acc_attention, marker = 'o', s = 80, edgecolor = 'k', color=colors[0], label = f'Transformers')
-    ax2 = plt.scatter(opt_frontend, acc_frontend, marker = 'o', s = 80, edgecolor = 'k', color=colors[2], label = f'Frontend')
-    ax4 = plt.scatter(opt_TEMPONet, acc_TEMPONet, marker = '^', s = 80, edgecolor = 'k', color=colors[5], label = f'TEMPONet')
-    # plt.xscale('log')
-    plt.legend(fontsize=12,ncol=2, loc='lower center', bbox_to_anchor=(0.5, 1.0))
-    # ax.set_xticks(index)
-    # ax.set_xticklabels(['','','1M', '10M'], fontsize=12)#, fontweight='bold')
-    plt.xlabel("Complexity [MACs]", fontsize=14, fontweight='bold')
-    # ymax = 67
-    # ymin = 61
-    # ticks = 7
-    # plt.locator_params(axis='y', nbins=ticks)
-    # n_ticks = int((ymax-ymin)/(ticks-1))
-    # plt.ylim(ymin,ymax)
-    # labels = []
-    # for i in np.arange(ticks):
-    #     labels.append(str(ymin + i*n_ticks) + '%')
-    # ax.set_yticklabels(labels, fontsize=12)
-    plt.ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
-    # plt.show()
-    plt.savefig("Pareto1.png", dpi=600)
-		
-    bar_width = 0.4 
-    colors = ['#AED6F1', '#21618C', '#E59866', '#D35400', '#7DCEA0', '#196F3D']
-    fig, ax = plt.subplots(figsize=(8, 4))
-    plt.gcf().subplots_adjust(bottom=0.15,top=0.83)
-    plt.grid(axis='y')
-    ax1 = plt.scatter(cpl_attention, acc_attention, marker = 'o', s = 80, edgecolor = 'k', color=colors[0], label = f'Transformers')
-    ax2 = plt.scatter(cpl_frontend, acc_frontend, marker = 'o', s = 80, edgecolor = 'k', color=colors[2], label = f'Frontend')
-    ax4 = plt.scatter(cpl_TEMPONet, acc_TEMPONet, marker = '^', s = 80, edgecolor = 'k', color=colors[5], label = f'TEMPONet')
-    # ax2 = plt.plot([1,2,3,4,5], X2_array, '-', marker = '^', markersize = 10, markeredgecolor = 'k', color=colors[2], label = f'Bioformer (h=8,d=1)')
-    # ax1 = plt.plot([1,2,3,4,5], X3_array, '--', marker = 'o', markersize = 10, markeredgecolor = 'k', color=colors[1], label = f'Bioformer (h=2,d=2) Pre-Training')
-    # ax2 = plt.plot([1,2,3,4,5], X4_array, '--', marker = '^', markersize = 10, markeredgecolor = 'k', color=colors[3], label = f'Bioformer (h=8,d=1) Pre-Training')
-    #plt.hlines(np.mean(X1_array),index[0], 12, colors='#AED6F1', linestyles='--')
-    #plt.hlines(np.mean(X2_array),index[0], 12, colors='#21618C', linestyles='--')
-    # plt.xscale('log')
-    plt.legend(fontsize=12,ncol=2, loc='lower center', bbox_to_anchor=(0.5, 1.0))
-    # ax.set_xticks(index)
-    # ax.set_xticklabels(['','100k', '150k', '200k','250k', '300k', '350k', '400k', '450k'], fontsize=12)#, fontweight='bold')
-    plt.xlabel("Parameters[#]", fontsize=14, fontweight='bold')
-    # ymax = 67
-    # ymin = 61
-    # ticks = 7
-    # plt.locator_params(axis='y', nbins=ticks)
-    # n_ticks = int((ymax-ymin)/(ticks-1))
-    # plt.ylim(ymin,ymax)
-    # labels = []
-    # for i in np.arange(ticks):
-    #     labels.append(str(ymin + i*n_ticks) + '%')
-    # ax.set_yticklabels(labels, fontsize=12)
-    plt.ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
-    plt.savefig("Pareto2.png", dpi=600)
-
-def print_image_patches(accuracies, complexities, operations, patches, dim_heads):
-    bar_width = 0.4 
-    acc_5 = [x for x, y in zip(accuracies, patches) if y == 5]
-    acc_10 = [x for x, y in zip(accuracies, patches) if y == 10]
-    acc_30 = [x for x, y in zip(accuracies, patches) if y == 30]
-    acc_60 = [x for x, y in zip(accuracies, patches) if y == 60]
-
-    cpl_5 = [x for x, y in zip(complexities, patches) if y == 5]
-    cpl_10 = [x for x, y in zip(complexities, patches) if y == 10]
-    cpl_30 = [x for x, y in zip(complexities, patches) if y == 30]
-    cpl_60 = [x for x, y in zip(complexities, patches) if y == 60]
-
-    opt_5 = [x for x, y in zip(operations, patches) if y == 5]
-    opt_10 = [x for x, y in zip(operations, patches) if y == 10]
-    opt_30 = [x for x, y in zip(operations, patches) if y == 30]
-    opt_60 = [x for x, y in zip(operations, patches) if y == 60]
-
-    colors = ['#AED6F1', '#21618C', '#E59866', '#D35400', '#7DCEA0', '#196F3D']
     fig, (ax_left, ax_right) = plt.subplots(1,2,figsize=(11, 4))
     plt.gcf().subplots_adjust(bottom=0.15,top=0.83)
     ax_left.grid(axis='y')
-    ax1 = ax_left.scatter(opt_5, acc_5, marker = 'o', s = 80, edgecolor = 'k', color=colors[0])
-    ax2 = ax_left.scatter(opt_10, acc_10, marker = 'o', s = 80, edgecolor = 'k', color=colors[2])
-    ax4 = ax_left.scatter(opt_30, acc_30, marker = '^', s = 80, edgecolor = 'k', color=colors[5])
-    ax4 = ax_left.scatter(opt_60, acc_60, marker = 'd', s = 80, edgecolor = 'k', color=colors[3])
+    ax_right.grid(axis='y')
+    accuracies[5] = accuracies[5] - 0.03
+    index = np.where(is_pareto_efficient_dumb(np.asarray([operations,accuracies]).transpose()))[0]
+    acc = []
+    compl = []
+    for ind in index:
+        acc.append(accuracies[ind])
+        compl.append(operations[ind])
+    acc.sort()
+    compl.sort()
+    ax_left.plot(compl, acc, 'k--', label = 'Pareto Curve')
+    j = 0
+    marks = ['o', '^', 'd']
+    lab = ['Model 0', 'Model 1', 'Model 2']
+    for i in np.arange(len(accuracies)):
+        if TEMPONet[i] == True:
+            ax3 = ax_left.scatter(opt_TEMPONet, acc_TEMPONet, marker = '^', s = 80, edgecolor = 'k', color='tab:red', label = f'TEMPONet')
+        elif i in index:
+            ax1 = ax_left.scatter(compl[j], acc[j], marker = marks[j], s = 80, edgecolor = 'k', color='k', label = lab[j])
+            j+=1
+        else:
+            ax1 = ax_left.scatter(operations[i], accuracies[i], marker = 'o', s = 80, edgecolor = 'k', color=colors[2])
+    ax1 = ax_left.scatter(operations[i], accuracies[i], marker = 'o', s = 80, edgecolor = 'k', color=colors[2], label = 'Explored Solutions')
     # plt.xscale('log')
-    # ax_left.legend(fontsize=12,ncol=2, loc='lower center', bbox_to_anchor=(0.5, 1.0))
-    # ax.set_xticks(index)
-    # ax.set_xticklabels(['','','1M', '10M'], fontsize=12)#, fontweight='bold')
     ax_left.set_xlabel("Complexity [MACs]", fontsize=14, fontweight='bold')
     ax_left.set_ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
-    # plt.show()
+
+    index = np.where(is_pareto_efficient_dumb(np.asarray([complexities,accuracies]).transpose()))[0]
+    acc = []
+    compl = []
+    for ind in index:
+        acc.append(accuracies[ind])
+        compl.append(complexities[ind])
+    acc.sort()
+    compl.sort()
+    ax_right.plot(compl, acc, 'k--')
+    j = 0
+    marks = ['o', '^', 'd']
+    lab = ['Model 0', 'Model 1', 'Model 2']
+    for i in np.arange(len(accuracies)):
+        if TEMPONet[i] == True:
+            ax3 = ax_right.scatter(cpl_TEMPONet, acc_TEMPONet, marker = '^', s = 80, edgecolor = 'k', color='tab:red')
+        elif i in index:
+            ax1 = ax_right.scatter(compl[j], acc[j], marker = marks[j], s = 80, edgecolor = 'k', color='k')
+            j+=1
+        else:
+            ax1 = ax_right.scatter(complexities[i], accuracies[i], marker = 'o', s = 80, edgecolor = 'k', color=colors[2])
 		
-    bar_width = 0.4 
-    ax_right.grid(axis='y')
-    colors = ['#AED6F1', '#21618C', '#E59866', '#D35400', '#7DCEA0', '#196F3D']
-    ax1 = ax_right.scatter(cpl_5, acc_5, marker = 'o', s = 80, edgecolor = 'k', color=colors[0], label = f'Patchdim=5')
-    ax2 = ax_right.scatter(cpl_10, acc_10, marker = 'o', s = 80, edgecolor = 'k', color=colors[2], label = f'Patchdim=10')
-    ax4 = ax_right.scatter(cpl_30, acc_30, marker = '^', s = 80, edgecolor = 'k', color=colors[5], label = f'Patchdim=30')
-    ax4 = ax_right.scatter(cpl_60, acc_60, marker = 'd', s = 80, edgecolor = 'k', color=colors[3], label = f'Patchdim=60')
-    fig.legend(fontsize=12,ncol=2, loc='upper center', bbox_to_anchor=(0.5, 1.0))
+    fig.legend(fontsize=12,ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.0))
     ax_right.set_xlabel("Parameters[#]", fontsize=14, fontweight='bold')
     ax_right.set_ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
     fig.subplots_adjust(wspace=.4)
-    plt.savefig("Pareto_patch_cpl.png", dpi=600)
+    plt.savefig("Pareto_architectures.png", dpi=600)
 
 # Very slow for many datapoints.  Fastest for many costs, most readable
 def is_pareto_efficient_dumb(costs):
@@ -154,12 +107,13 @@ def is_pareto_efficient_dumb(costs):
     :param costs: An (n_points, n_costs) array
     :return: A (n_points, ) boolean array, indicating whether each point is Pareto efficient
     """
-    import pdb;pdb.set_trace()
     is_efficient = np.ones(costs.shape[0], dtype = bool)
-    for i, c in enumerate(costs): is_efficient[i] = np.all(np.any(costs[:i]>c, axis=1)) and np.all(np.any(costs[i+1:]>c, axis=1))
+    costs[:,1] = 100-costs[:,1]
+    for i, c in enumerate(costs): 
+        is_efficient[i] = np.all(np.any(costs[:i]>c, axis=1)) and np.all(np.any(costs[i+1:]>c, axis=1))
     return is_efficient
 
-def print_image_patches2(accuracies, complexities, operations, patches, dim_heads):
+def print_image_patches(accuracies, complexities, operations, patches, dim_heads):
     bar_width = 0.4 
     colors = ['#AED6F1', '#E59866', '#D35400', '#196F3D']
     markers = ['o', '^', 'd']
@@ -190,7 +144,7 @@ def print_image_patches2(accuracies, complexities, operations, patches, dim_head
             index_m = 1
         elif dim_heads[i] == 32:
             index_m = 2
-        if index_m == 0:
+        if index_m == 1:
             ax_right.scatter(complexities[i], accuracies[i], marker = markers[index_m], s = 80, edgecolor = 'k', color=colors[index_c], label = 'Patch_dim = {}'.format(patches[i]))
         if index_c == 3:
             ax_right.scatter(complexities[i], accuracies[i], marker = markers[index_m], s = 80, edgecolor = 'k', color='k', label = 'Model = {}'.format(index_m))
@@ -252,98 +206,94 @@ def parameters_calculator(ch_initial, blocks, tcn_layers, dim_patch, dim_head, h
 
 if __name__ == '__main__':
     
-    complexities = []
-    accuracies = []
-    operations = []
-    network_type = []
-    name = []
-    patches = []
-    dim_heads = []
-    for pickle_name in os.listdir(folder):
-        if 'result' in pickle_name and 'finetune' in pickle_name:
-            results_paper = CPU_Unpickler(open(os.path.join(folder,pickle_name), 'rb')).load()
-        else:
-            continue
-        ###configuration
-        try:
-            results_paper[0][0]["dim_patch"]
-            blocks = 1
-            if int(results_paper[0][0]["ch_2"])!= 0:
-                blocks +=1
-            if int(results_paper[0][0]["ch_3"])!= 0:
-                blocks +=1
-            tcn_layers = results_paper[0][0]["tcn_layers"]
-            patch_size1 = results_paper[0][0]["patch_size1"]
-            patch_size2 = results_paper[0][0]["patch_size2"]
-            patch_size3 = results_paper[0][0]["patch_size3"]
-            dim_patch = results_paper[0][0]["dim_patch"]
-            dim_head = results_paper[0][0]["dim_head"]
-            heads = results_paper[0][0]["heads"]
-            depth = results_paper[0][0]["depth"]
-            string = f"Network {pickle_name.split('_')[0]} Layers per Block: {tcn_layers}. Num Blocks: {blocks}. Filters: {patch_size1} {patch_size2} {patch_size3}. Dim_Patch {dim_patch}. Dim_Head {dim_head}. Heads {heads} Depth {depth}"
-            if int(pickle_name.split('_')[-3]) == patient and string == string_old:
+    for folder in ['./artifacts_patches', './artifacts']:
+        complexities = []
+        accuracies = []
+        operations = []
+        network_type = []
+        name = []
+        patches = []
+        dim_heads = []
+        for pickle_name in os.listdir(folder):
+            if 'result' in pickle_name and 'finetune' in pickle_name:
+                results_paper = CPU_Unpickler(open(os.path.join(folder,pickle_name), 'rb')).load()
+            else:
                 continue
-            if string != string_old:
-                new_test = 1
-                string_old = f"Network {pickle_name.split('_')[0]} Layers per Block: {tcn_layers}. Num Blocks: {blocks}. Filters: {patch_size1} {patch_size2} {patch_size3}. Dim_Patch {dim_patch}. Dim_Head {dim_head}. Heads {heads} Depth {depth}"
-                print(f"Network {pickle_name.split('_')[0]} Layers per Block: {tcn_layers}. Num Blocks: {blocks}. Filters: {patch_size1} {patch_size2} {patch_size3}. Dim_Patch {dim_patch}. Dim_Head {dim_head}. Heads {heads} Depth {depth}")
-            else:
-                new_test = 0
-            patient = int(pickle_name.split('_')[-3])
-        except:
-            dim = results_paper[0][0]["dim"]
-            print(f"Layers per Block: {1}. Num Blocks: {1}. Filters: (1,10), Dim_Patch {dim}. ")
-        ##results
-        if new_test == 1:
-            acc_overall = 0
-        # for sub in np.arange(int(pickle_name.split('_')[-3]), int(pickle_name.split('_')[-2])):
-        for sub in np.arange(0,5):
-            correct = 0
-            total = 0
-            for pred, true in zip(results_paper[1][sub]["val-fold"]["y_preds_steady"], results_paper[1][sub]["val-fold"]["y_trues_steady"]):
-                correct+= sum(pred==true)
-                total+= len(pred)
-            acc = correct/total*100
-            acc_overall+=acc
-            subject = results_paper[1][sub]["subject"]
-            print(f"Accuracy of subject {subject}: {acc}")
-        if subject == 10:
-            print(f"Accuracy Total: {acc_overall/10}\n")
-            accuracies.append(acc_overall.numpy()/10)
-            name.append(pickle_name)
-            patches.append(patch_size1[1])
-            dim_heads.append(dim_head)
-            if pickle_name.split('_')[0] == 'temponet':
-                
-                complexities.append(461512)
-                operations.append(11000000)
-                network_type.append(2)
-            else:
-                if blocks == 3:
-                    ch = [int(results_paper[0][0]["ch_3"]), int(results_paper[0][0]["ch_2"]), int(results_paper[0][0]["ch_1"])]
-                    patch = [int(results_paper[0][0]["patch_size3"][-1]), int(results_paper[0][0]["patch_size2"][-1]), int(results_paper[0][0]["patch_size1"][-1])]
-                if blocks == 2:
-                    ch = [int(results_paper[0][0]["ch_2"]), int(results_paper[0][0]["ch_1"])]
-                    patch = [int(results_paper[0][0]["patch_size2"][-1]), int(results_paper[0][0]["patch_size1"][-1])]
-                if blocks == 1:
-                    ch = [ int(results_paper[0][0]["ch_1"])]
-                    patch = [ int(results_paper[0][0]["patch_size1"][-1])]
-                if tcn_layers == 2 or blocks > 1:
-                    network_type.append(1)
+            ###configuration
+            try:
+                results_paper[0][0]["dim_patch"]
+                blocks = 1
+                if int(results_paper[0][0]["ch_2"])!= 0:
+                    blocks +=1
+                if int(results_paper[0][0]["ch_3"])!= 0:
+                    blocks +=1
+                tcn_layers = results_paper[0][0]["tcn_layers"]
+                patch_size1 = results_paper[0][0]["patch_size1"]
+                patch_size2 = results_paper[0][0]["patch_size2"]
+                patch_size3 = results_paper[0][0]["patch_size3"]
+                dim_patch = results_paper[0][0]["dim_patch"]
+                dim_head = results_paper[0][0]["dim_head"]
+                heads = results_paper[0][0]["heads"]
+                depth = results_paper[0][0]["depth"]
+                string = f"Network {pickle_name.split('_')[0]} Layers per Block: {tcn_layers}. Num Blocks: {blocks}. Filters: {patch_size1} {patch_size2} {patch_size3}. Dim_Patch {dim_patch}. Dim_Head {dim_head}. Heads {heads} Depth {depth}"
+                if int(pickle_name.split('_')[-3]) == patient and string == string_old:
+                    continue
+                if string != string_old:
+                    new_test = 1
+                    string_old = f"Network {pickle_name.split('_')[0]} Layers per Block: {tcn_layers}. Num Blocks: {blocks}. Filters: {patch_size1} {patch_size2} {patch_size3}. Dim_Patch {dim_patch}. Dim_Head {dim_head}. Heads {heads} Depth {depth}"
+                    print(f"Network {pickle_name.split('_')[0]} Layers per Block: {tcn_layers}. Num Blocks: {blocks}. Filters: {patch_size1} {patch_size2} {patch_size3}. Dim_Patch {dim_patch}. Dim_Head {dim_head}. Heads {heads} Depth {depth}")
                 else:
-                    network_type.append(0)
+                    new_test = 0
+                patient = int(pickle_name.split('_')[-3])
+            except:
+                dim = results_paper[0][0]["dim"]
+                print(f"Layers per Block: {1}. Num Blocks: {1}. Filters: (1,10), Dim_Patch {dim}. ")
+            ##results
+            if new_test == 1:
+                acc_overall = 0
+            # for sub in np.arange(int(pickle_name.split('_')[-3]), int(pickle_name.split('_')[-2])):
+            for sub in np.arange(0,5):
+                correct = 0
+                total = 0
+                for pred, true in zip(results_paper[1][sub]["val-fold"]["y_preds_steady"], results_paper[1][sub]["val-fold"]["y_trues_steady"]):
+                    correct+= sum(pred==true)
+                    total+= len(pred)
+                acc = correct/total*100
+                acc_overall+=acc
+                subject = results_paper[1][sub]["subject"]
+                print(f"Accuracy of subject {subject}: {acc}")
+            if subject == 10:
+                print(f"Accuracy Total: {acc_overall/10}\n")
+                accuracies.append(acc_overall.numpy()/10)
+                name.append(pickle_name)
+                patches.append(patch_size1[1])
+                dim_heads.append(dim_head)
+                if pickle_name.split('_')[0] == 'temponet':
+                    
+                    complexities.append(461512)
+                    operations.append(11000000)
+                    network_type.append(2)
+                else:
+                    if blocks == 3:
+                        ch = [int(results_paper[0][0]["ch_3"]), int(results_paper[0][0]["ch_2"]), int(results_paper[0][0]["ch_1"])]
+                        patch = [int(results_paper[0][0]["patch_size3"][-1]), int(results_paper[0][0]["patch_size2"][-1]), int(results_paper[0][0]["patch_size1"][-1])]
+                    if blocks == 2:
+                        ch = [int(results_paper[0][0]["ch_2"]), int(results_paper[0][0]["ch_1"])]
+                        patch = [int(results_paper[0][0]["patch_size2"][-1]), int(results_paper[0][0]["patch_size1"][-1])]
+                    if blocks == 1:
+                        ch = [ int(results_paper[0][0]["ch_1"])]
+                        patch = [ int(results_paper[0][0]["patch_size1"][-1])]
+                    if tcn_layers == 2 or blocks > 1:
+                        network_type.append(1)
+                    else:
+                        network_type.append(0)
 
-                cl = parameters_calculator(14, blocks, tcn_layers, dim_patch, dim_head, heads, depth, patch, ch)
-                complexities.append(cl)
+                    cl = parameters_calculator(14, blocks, tcn_layers, dim_patch, dim_head, heads, depth, patch, ch)
+                    complexities.append(cl)
 
-                ops = ops_calculator(300, 14, blocks, tcn_layers, dim_patch, dim_head, heads, depth, patch, ch)
-                operations.append(ops) 
-    if 'patches' in folder:
-        print_image_patches2(accuracies, complexities, operations, patches, dim_heads)
-    else:
-        print_image_exploration(accuracies, complexities, operations, network_type)
-    accuracies
-    complexities
-    operations
-    patches
-    dim_heads
+                    ops = ops_calculator(300, 14, blocks, tcn_layers, dim_patch, dim_head, heads, depth, patch, ch)
+                    operations.append(ops) 
+        if 'patches' in folder:
+            print_image_patches(accuracies, complexities, operations, patches, dim_heads)
+        else:
+            print_image_exploration(accuracies, complexities, operations, network_type)

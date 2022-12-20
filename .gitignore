@@ -10,5 +10,7 @@ __pycache__
 .pth
 *.pth
 logs
-artifacts
+Results_analysis/artifacts/*
+Results_analysis/artifacts_patches/*
 result_*
+*.pickle
