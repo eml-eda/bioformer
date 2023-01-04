@@ -77,23 +77,41 @@ def score_margin(data):
     sm = np.abs(np.diff(partial_sort_val, axis=1)).reshape(-1)
     return sm
 
+# Very slow for many datapoints.  Fastest for many costs, most readable
+def is_pareto_efficient_dumb(costs):
+    """
+    Find the pareto-efficient points
+    :param costs: An (n_points, n_costs) array
+    :return: A (n_points, ) boolean array, indicating whether each point is Pareto efficient
+    """
+    is_efficient = np.ones(costs.shape[0], dtype = bool)
+    costs[:,1] = 100-costs[:,1]
+    for i, c in enumerate(costs): 
+        is_efficient[i] = np.all(np.any(costs[:i]>c, axis=1)) and np.all(np.any(costs[i+1:]>c, axis=1))
+    return is_efficient
 def print_image(accuracies, complexities, static_acc, static_ops):
     bar_width = 0.4 
     colors = ['#AED6F1', '#E59866', '#D35400', '#196F3D']
     markers = ['o', '^', 'd']
 
-    fig, ax_right = plt.subplots(figsize=(6, 4))
+    fig, ax_right = plt.subplots(figsize=(8, 4))
     plt.gcf().subplots_adjust(bottom=0.15,top=0.83)
     ax_right.grid(axis='y')
-    ax_right.set_xlabel("Operations[#]", fontsize=14, fontweight='bold')
+    ax_right.set_xlabel("Complexity [MACs]", fontsize=14, fontweight='bold')
     ax_right.set_ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
     fig.subplots_adjust(wspace=.4)
-    # ax_left.scatter(operations[i], accuracies, marker = markers[index_m], s = 80, edgecolor = 'k', color=colors[index_c])
-    ax_right.scatter(complexities[:-2], accuracies[:-2], marker = markers[0], s = 80, edgecolor = 'k', color=colors[0], label = 'Adaptive Models')
+    ax_right.scatter(complexities[50:-2], accuracies[50:-2], marker = markers[0], s = 80, edgecolor = 'k', color=colors[0], label = 'Big/Little')
+    ax_right.scatter(complexities[:50], accuracies[:50], marker = markers[0], s = 80, edgecolor = 'k', color=colors[3], label = 'Rest Detector + Big/Little')
     # ax_right.scatter(complexities[-2:], accuracies[-2:], marker = markers[0], s = 80, edgecolor = 'k', color=colors[1])
-    ax_right.scatter(static_ops, static_acc, marker = markers[0], s = 80, edgecolor = 'k', color=colors[2], label = 'Static Models')
+    index = np.where(is_pareto_efficient_dumb(np.asarray([static_ops,static_acc]).transpose()))[0]
+    acc = []
+    compl = []
+    for ind in index:
+        acc.append(static_acc[ind])
+        compl.append(static_ops[ind])
+    ax_right.scatter(compl, acc, marker = markers[0], s = 80, edgecolor = 'k', color=colors[2], label = 'Static Models')
     fig.legend(fontsize=12,ncol=4, loc='upper center', bbox_to_anchor=(0.5, 1.0))
-    plt.savefig("Adaptive.png", dpi=600)
+    plt.savefig("Adaptive_forest.png", dpi=600)
 
 if __name__ == '__main__':
     pickle_name = 'ViT_2_1_32_8_1_14_0_0_results_finetune_0_5_1670954771.pickle'
@@ -118,6 +136,61 @@ if __name__ == '__main__':
         acc_point = 0
         compl_point = 0
         opt_point = 0
+        forest_overall = 0
+        total = 0
+        for patient in np.arange(10):
+            true = 0
+            total = 0
+            if patient < 5:
+                results_model1 = results_model1_05
+                results_model2 = results_model2_05
+            else:
+                results_model1 = results_model1_510
+                results_model2 = results_model2_510
+                
+            for sess in np.arange(5):
+                for i in np.arange(len(results_model1[1][patient%5]["val-fold"]["outs_steady"][sess])):
+                    if sess == 0 and i == 0:
+                        model1_results = results_model1[1][patient%5]["val-fold"]["outs_steady"][sess][i].numpy()
+                        model2_results = results_model2[1][patient%5]["val-fold"]["outs_steady"][sess][i].numpy()
+                        labels = results_model1[1][patient%5]["val-fold"]["y_trues_steady"][sess].numpy()
+                    else:
+                        model1_results = np.concatenate((model1_results,(results_model1[1][patient%5]["val-fold"]["outs_steady"][sess][i].numpy())),axis=0)
+                        model2_results = np.concatenate((model2_results,(results_model2[1][patient%5]["val-fold"]["outs_steady"][sess][i].numpy())),axis=0)
+                        if i == 0:
+                            labels = np.concatenate((labels,(results_model1[1][patient%5]["val-fold"]["y_trues_steady"][sess].numpy())),axis=0)
+            sm = score_margin(model2_results)
+            preds, big_used = adaptive_predict(th, sm, model2_results, model1_results)
+            import json
+            results_model_rf = json.load(open(f"artifacts_forest/s{patient+1}_pred.json"))
+            results_model_rf = results_model_rf['test predictions']
+            predictions = []
+            for i, pred in enumerate(results_model_rf):
+                if pred == 0:
+                    predictions.append(0)
+                else:
+                    predictions.append(preds[i])
+            true += sum(predictions == labels)
+            total += len(labels)
+            true_overall += sum(predictions==labels)
+            total_overall += len(labels)
+            big_used_average += big_used
+            forest_overall += sum(results_model_rf)
+            # print(f"Accuracy Subject {patient+1} = {true/total*100}, Big Used = {big_used}")
+        ML_used = 1-(forest_overall/total_overall)
+        print(f"Accuracy Overall = {true_overall/total_overall*100} Big Used = {big_used_average/10} ML Used = {ML_used}")
+        acc.append(true_overall/total_overall*100)
+        complexity.append((model2_ops + big_used_average/10*model1_ops)*ML_used)
+
+    for th in np.arange(0,10,0.2):
+        true_overall = 0
+        total_overall = 0
+        big_used_average = 0
+        acc_point = 0
+        compl_point = 0
+        opt_point = 0
+        forest_overall = 0
+        total = 0
         for patient in np.arange(10):
             true = 0
             total = 0
@@ -146,11 +219,10 @@ if __name__ == '__main__':
             true_overall += sum(predictions==labels)
             total_overall += len(labels)
             big_used_average += big_used
-            # print(f"Accuracy Subject {patient+1} = {true/total*100}, Big Used = {big_used}")
         print(f"Accuracy Overall = {true_overall/total_overall*100} Big Used = {big_used_average/10}")
         acc.append(true_overall/total_overall*100)
-        complexity.append(model2_ops + big_used_average/10*model1_ops)
-    
+        complexity.append((model2_ops + big_used_average/10*model1_ops))
+    import pdb;pdb.set_trace()
     for th in [0,20]:
         true_overall = 0
         total_overall = 0

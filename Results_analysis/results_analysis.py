@@ -26,6 +26,31 @@ def multiplyList(myList):
         result = result * x
     return result
 
+def print_image_pretraining(accuracies, complexities, operations, network_type):
+    bar_width = 0.4 
+    colors = ['#AED6F1', '#21618C', '#E59866', '#D35400', '#7DCEA0', '#196F3D']
+    fig, (ax_left, ax_right) = plt.subplots(1,2,figsize=(11, 4))
+    plt.gcf().subplots_adjust(bottom=0.15,top=0.83)
+    ax_left.grid(axis='y')
+    ax_right.grid(axis='y')
+    j = 0
+    marks = ['o', '^', 'd']
+    lab = ['Model 0', 'Model 1', 'Model 2']
+    for i in np.arange(len(accuracies)):
+        ax1 = ax_left.scatter(operations[i], accuracies[i], marker = 'o', s = 80, edgecolor = 'k', color=colors[2])
+    # plt.xscale('log')
+    ax_left.set_xlabel("Complexity [MACs]", fontsize=14, fontweight='bold')
+    ax_left.set_ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
+
+    for i in np.arange(len(accuracies)):
+        ax1 = ax_right.scatter(complexities[i], accuracies[i], marker = 'o', s = 80, edgecolor = 'k', color=colors[2])
+		
+    fig.legend(fontsize=12,ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.0))
+    ax_right.set_xlabel("Parameters[#]", fontsize=14, fontweight='bold')
+    ax_right.set_ylabel("Accuracy [%]", fontsize=14, fontweight='bold')
+    fig.subplots_adjust(wspace=.4)
+    plt.savefig("Pretraining_architectures.png", dpi=600)
+
 def print_image_exploration(accuracies, complexities, operations, network_type):
     bar_width = 0.4 
     attention = [True if x == 0 else False for x in network_type ]
@@ -169,6 +194,7 @@ def print_image_patches(accuracies, complexities, operations, patches, dim_heads
     acc.sort()
     compl.sort()
     ax_left.plot(compl, acc, 'k--')
+    import pdb;pdb.set_trace()
     fig.legend(fontsize=12,ncol=4, loc='upper center', bbox_to_anchor=(0.5, 1.0))
     plt.savefig("Pareto_patch.png", dpi=600)
 
@@ -206,7 +232,8 @@ def parameters_calculator(ch_initial, blocks, tcn_layers, dim_patch, dim_head, h
 
 if __name__ == '__main__':
     
-    for folder in ['./artifacts_patches', './artifacts']:
+    # for folder in ['./artifacts_pretraining', './artifacts_patches', './artifacts']:
+    for folder in ['./artifacts_patches']:
         complexities = []
         accuracies = []
         operations = []
@@ -214,6 +241,7 @@ if __name__ == '__main__':
         name = []
         patches = []
         dim_heads = []
+        old_mode = 'None'
         for pickle_name in os.listdir(folder):
             if 'result' in pickle_name and 'finetune' in pickle_name:
                 results_paper = CPU_Unpickler(open(os.path.join(folder,pickle_name), 'rb')).load()
@@ -236,14 +264,15 @@ if __name__ == '__main__':
                 heads = results_paper[0][0]["heads"]
                 depth = results_paper[0][0]["depth"]
                 string = f"Network {pickle_name.split('_')[0]} Layers per Block: {tcn_layers}. Num Blocks: {blocks}. Filters: {patch_size1} {patch_size2} {patch_size3}. Dim_Patch {dim_patch}. Dim_Head {dim_head}. Heads {heads} Depth {depth}"
-                if int(pickle_name.split('_')[-3]) == patient and string == string_old:
+                if int(pickle_name.split('_')[-3]) == patient and string == string_old and pickle_name.split('_')[-4] == old_mode:
                     continue
-                if string != string_old:
+                if string != string_old or pickle_name.split('_')[-4] != old_mode:
                     new_test = 1
                     string_old = f"Network {pickle_name.split('_')[0]} Layers per Block: {tcn_layers}. Num Blocks: {blocks}. Filters: {patch_size1} {patch_size2} {patch_size3}. Dim_Patch {dim_patch}. Dim_Head {dim_head}. Heads {heads} Depth {depth}"
                     print(f"Network {pickle_name.split('_')[0]} Layers per Block: {tcn_layers}. Num Blocks: {blocks}. Filters: {patch_size1} {patch_size2} {patch_size3}. Dim_Patch {dim_patch}. Dim_Head {dim_head}. Heads {heads} Depth {depth}")
                 else:
                     new_test = 0
+                old_mode = pickle_name.split('_')[-4]
                 patient = int(pickle_name.split('_')[-3])
             except:
                 dim = results_paper[0][0]["dim"]
@@ -293,7 +322,10 @@ if __name__ == '__main__':
 
                     ops = ops_calculator(300, 14, blocks, tcn_layers, dim_patch, dim_head, heads, depth, patch, ch)
                     operations.append(ops) 
+        import pdb;pdb.set_trace()
         if 'patches' in folder:
             print_image_patches(accuracies, complexities, operations, patches, dim_heads)
+        elif 'pretraining' in folder:
+            print_image_pretraining(accuracies, complexities, operations, network_type)
         else:
             print_image_exploration(accuracies, complexities, operations, network_type)
