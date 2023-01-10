@@ -322,7 +322,6 @@ if __name__ == '__main__':
 
                     ops = ops_calculator(300, 14, blocks, tcn_layers, dim_patch, dim_head, heads, depth, patch, ch)
                     operations.append(ops) 
-        import pdb;pdb.set_trace()
         if 'patches' in folder:
             print_image_patches(accuracies, complexities, operations, patches, dim_heads)
         elif 'pretraining' in folder:
