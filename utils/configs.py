@@ -104,3 +104,38 @@ configs_finetune_nopretrain = {
         },
     ]
 }
+
+
+configs_quantization = {
+    "image_size": (1, 300),
+    "patch_size1": (1, 3),
+    "patch_size2": (1, 5),
+    "patch_size3": (1, None),
+    "ch_1": 14, 
+    "ch_2": 32, 
+    "ch_3": None, 
+    "tcn_layers": 2,
+    "dim_patch": 64,
+    "dim_head": 32,
+    "heads": 8,
+    "depth": 1,
+    "channels": 14,
+    "num_classes": 8,
+    "dropout": .2,
+    "emb_dropout": 0,
+    "pool": "cls",
+    "use_cls_token": True,
+    "sessions": 5,
+    "subjects": [1,2,3,4,5,6,7,8,9,10],
+    "pretrained": True,
+    "training_config": [
+        {
+         "epochs": 5,
+         "batch_size": 64,
+         "optim": "Adam",
+         "optim_hparams": {"lr": 1e-4, "betas": (.9, .999), "weight_decay": 0},
+         "lr_scheduler": "StepLR",
+         "lr_scheduler_hparams": {"gamma": .1, "step_size": 10},
+        },
+    ]
+}

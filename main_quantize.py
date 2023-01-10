@@ -15,11 +15,11 @@ from utils.model import TEMPONet as TEMPONet
 from utils.download_DB6 import download_file
 from utils.utils import get_loss_preds
 from utils.train import train 
-from utils.configs import configs_pretrain, configs_finetune, configs_finetune_nopretrain
+from utils.configs import configs_pretrain, configs_finetune, configs_finetune_nopretrain, configs_quantization
 import argparse
 
 PROCESSES = 1
-save_model_every_n = 50
+save_model_every_n = 5
 name_prefix = f"None"
 
 def extend_results(results, result):
@@ -29,7 +29,7 @@ def extend_results(results, result):
         results[i].extend(result[i])
     return results
 
-def main_quantize(chunk_idx, args):
+def main_postraining_quantize(chunk_idx, args):
     configs = configs_chunks_finetune[chunk_idx]
     configs[0]["depth"] = args.depth
     configs[0]["heads"] = args.heads
@@ -64,7 +64,7 @@ def main_quantize(chunk_idx, args):
                             for i in test_sessions]
     results_ = []
     for i, config in enumerate(configs, start=1):
-        config['pretrained'] = f"../{name_prefix}_{subject - 1}_epoch100.pth"
+        config['pretrained'] = f"../{name_prefix}_{subject - 1}_epoch20.pth"
         results = {}
         results['subject'] = subject
         results['steady'] = steady
@@ -78,7 +78,7 @@ def main_quantize(chunk_idx, args):
             net_fp32 = TEMPONet()
         elif args.network == "ViT":
             net_fp32 = ViT(**config)
-        config['pretrained'] = f"{name_prefix}_{9 - (subject - 1)}_epoch100.pth"
+        config['pretrained'] = f"{name_prefix}_{subject - 1}_epoch20.pth"
         if config['pretrained'] is not None:
             net_fp32.load_state_dict(torch.load(config['pretrained'], map_location=torch.device('cpu')))
             print("Loaded checkpoint", config['pretrained'])
@@ -104,6 +104,124 @@ def main_quantize(chunk_idx, args):
         # quantizes the weights, computes and stores the scale and bias value to be
         # used with each activation tensor, and replaces key operators with quantized
         # implementations.
+        model_int8 = torch.quantization.convert(model_fp32_prepared)
+
+        criterion = nn.CrossEntropyLoss()
+        test_losses, y_preds, y_trues, outs = [], [], [], []
+
+        torch.manual_seed(0)
+        for test_ds in test_datasets_steady:
+            test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
+            test_loss, (y_pred, y_true, out) = get_loss_preds(model_int8, criterion, test_loader, device = device)
+            test_losses.append(test_loss)
+            y_preds.append(y_pred.cpu())
+            y_trues.append(y_true.cpu())
+            outs.append(out)
+        result['test_losses_steady'] = test_losses
+        result['y_preds_steady'] = y_preds
+        result['y_trues_steady'] = y_trues
+        result['outs_steady'] = outs
+        results[f'val-fold'] = result
+        correct = 0
+        total = 0
+        for i in np.arange(5):
+            correct+= sum(y_preds[i]==y_trues[i])
+            total+= len(y_preds[i])
+        acc = correct/total*100
+        print(f"Accuracy of subject Quantized {subject}: {acc}")
+
+
+        criterion = nn.CrossEntropyLoss()
+        test_losses, y_preds, y_trues, outs = [], [], [], []
+        torch.manual_seed(0)
+        for test_ds in test_datasets_steady:
+            test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
+            test_loss, (y_pred, y_true, out) = get_loss_preds(net_fp32, criterion, test_loader, device = device)
+            test_losses.append(test_loss)
+            y_preds.append(y_pred.cpu())
+            y_trues.append(y_true.cpu())
+            outs.append(out)
+        result['test_losses_steady'] = test_losses
+        result['y_preds_steady'] = y_preds
+        result['y_trues_steady'] = y_trues
+        result['outs_steady'] = outs
+        results[f'val-fold'] = result
+        correct = 0
+        total = 0
+        for i in np.arange(5):
+            correct+= sum(y_preds[i]==y_trues[i])
+            total+= len(y_preds[i])
+        acc = correct/total*100
+        print(f"Accuracy of subject {subject}: {acc}")
+
+    results_.append(results)
+    return [configs, results_]
+
+
+
+def main_QAT(chunk_idx, args):
+    configs = configs_chunks_finetune[chunk_idx]
+    configs[0]["depth"] = args.depth
+    configs[0]["heads"] = args.heads
+    configs[0]["dim_head"] = args.dim_head
+    configs[0]["ch_1"] = args.ch_1
+    configs[0]["ch_2"] = args.ch_2
+    configs[0]["ch_3"] = args.ch_3
+    configs[0]["patch_size1"] = (1, args.patch_size1)
+    configs[0]["patch_size2"] = (1, args.patch_size2)
+    configs[0]["patch_size3"] = (1, args.patch_size3)
+    configs[0]["tcn_layers"] = args.tcn_layers
+    subject = configs[0]['subjects']
+    n_sessions = configs[0]['sessions']
+    train_sessions = list(range(configs[0]['sessions']))
+    test_sessions = list(range(configs[0]['sessions'], 10))
+    steady=True
+    n_classes='7+1'
+    bootstrap='no'
+    print("Training subject", subject)
+    print("Steady", steady)
+    print("Bootstrap", bootstrap)
+    minmax = True
+    if configs[0]["pretrained"] is not None:
+        subs = ','.join([str(a) for a in range(1, 11) if a != subject])
+        minmax_picklename = f'artifacts/ds_minmax_sessions={n_sessions}subjects={subs}.pickle'
+        print("Loading minmax from", minmax_picklename)
+        minmax = load(open(minmax_picklename, 'rb'))
+
+    ds = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=train_sessions, steady=steady, n_classes=n_classes, minmax=minmax, image_like_shape=True).to(device)
+    test_ds_5 = DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=test_sessions, steady=steady, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True).to(device)
+
+    test_datasets_steady = [DB6MultiSession(folder=os.path.expanduser(dataset_folder), subjects=[subject], sessions=[i], 
+                                            steady=True, n_classes=n_classes, minmax=(ds.X_min, ds.X_max), image_like_shape=True) \
+                            for i in test_sessions]
+    results_ = []
+    for i, config in enumerate(configs, start=1):
+        config['pretrained'] = f"../{name_prefix}_{subject - 1}_epoch20.pth"
+        results = {}
+        results['subject'] = subject
+        results['steady'] = steady
+        results['n_classes'] = n_classes
+        results['bootstrap'] = bootstrap
+        results['train_sessions'] = train_sessions
+        results['test_sessions'] = test_sessions
+        result = {}
+        net_fp32 = ViT(**config)
+        config['pretrained'] = f"{name_prefix}_{subject - 1}_epoch20.pth"
+        if config['pretrained'] is not None:
+            net_fp32.load_state_dict(torch.load(config['pretrained'], map_location=torch.device('cpu')))
+            print("Loaded checkpoint", config['pretrained'])
+        
+        net_fp32.eval()
+        net_fp32.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
+
+        model_fp32_prepared = torch.quantization.prepare_qat(net_fp32.train())
+        losses_accs = train(net=model_fp32_prepared, net_name=f"{name_prefix}_{chunk_idx}", ds=ds, k=0, bootstrap=bootstrap, training_config=config['training_config'], test_ds=test_ds_5, device = device, save_model_every_n = save_model_every_n)
+        result['losses_accs'] = losses_accs
+        
+        # calibrate the prepared model to determine quantization parameters for activations
+        # in a real world setting, the calibration would be done with a representative dataset
+        torch.manual_seed(2023)
+        model_fp32_prepared.eval()
         model_int8 = torch.quantization.convert(model_fp32_prepared)
 
         criterion = nn.CrossEntropyLoss()
@@ -261,7 +379,7 @@ else:
 configs_chunks_idx_pretrain = list(range(len(configs_chunks_pretrain)))
 
 
-configs = list(ParameterGrid({k: (v if isinstance(v, list) else [v]) for k, v in configs_finetune_nopretrain.items()}))
+configs = list(ParameterGrid({k: (v if isinstance(v, list) else [v]) for k, v in configs_quantization.items()}))
 configs = sorted(configs, key=lambda x: (x["subjects"], x["sessions"]) )
 configs_chunks_finetune = []
 dataset_combinations = set(map(lambda x: (x["subjects"], x["sessions"]), configs))
@@ -346,7 +464,7 @@ if __name__ == '__main__':
     if False:
         results = None
         for i in configs_chunks_idx_pretrain[i_begin:i_end]:
-            result = main_inference(i, args)
+            result = main_postraining_quantize(i, args)
             results = extend_results(results, result)
         pickle_name = f'{name_prefix}_results_pretrain_{i_begin}_{i_end}_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
@@ -356,7 +474,7 @@ if __name__ == '__main__':
         results = None
         for i in configs_chunks_idx_finetune[i_begin:i_end]:
             # result = main_finetune(i, args)
-            result = main_quantize(i, args)
+            result = main_QAT(i, args)
             results = extend_results(results, result)
         pickle_name = f'{name_prefix}_results_finetune_nopretraining_{i_begin}_{i_end}_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))

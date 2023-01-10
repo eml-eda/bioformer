@@ -275,7 +275,7 @@ else:
 configs_chunks_idx_pretrain = list(range(len(configs_chunks_pretrain)))
 
 
-configs = list(ParameterGrid({k: (v if isinstance(v, list) else [v]) for k, v in configs_finetune_nopretrain.items()}))
+configs = list(ParameterGrid({k: (v if isinstance(v, list) else [v]) for k, v in configs_finetune.items()}))
 configs = sorted(configs, key=lambda x: (x["subjects"], x["sessions"]) )
 configs_chunks_finetune = []
 dataset_combinations = set(map(lambda x: (x["subjects"], x["sessions"]), configs))
@@ -369,8 +369,8 @@ if __name__ == '__main__':
     if finetune == True:
         results = None
         for i in configs_chunks_idx_finetune[i_begin:i_end]:
-            # result = main_finetune(i, args)
-            result = main_finetune_nopretraining(i, args)
+            result = main_finetune(i, args)
+            # result = main_finetune_nopretraining(i, args)
             results = extend_results(results, result)
         pickle_name = f'{name_prefix}_results_finetune_nopretraining_{i_begin}_{i_end}_{time():.0f}.pickle'
         dump(results, open(pickle_name, 'wb'))
