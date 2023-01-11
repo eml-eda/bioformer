@@ -428,3 +428,90 @@ class TEMPONet(nn.Module):
         x = self.fc(x)
         
         return x
+
+
+
+class TEMPONet_quantized(nn.Module):
+    
+    def __init__(self, input_size=300, input_channels=14):
+        super().__init__()
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(input_channels, 32, kernel_size = (1,3), dilation=(1,2), padding=(0,2)),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 32, kernel_size = (1,3), dilation=(1,2), padding=(0,2)),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size = (1,5), stride = (1,2), padding=(0,2)),
+            torch.nn.AvgPool2d((1,2), stride=(1,2), padding=(0,0)),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+        )
+
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size = (1,3), dilation=(1,4), padding=(0,4)),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size = (1,3), dilation=(1,4), padding=(0,4)),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size = (1,5), stride = (1,2), padding=(0,2)),
+            torch.nn.AvgPool2d((1,2), stride=(1,2), padding=(0,0)),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+        )
+
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(128, 128, kernel_size = (1,3), dilation=(1,8), padding=(0,8)),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 128, kernel_size = (1,3), dilation=(1,8), padding=(0,8)),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 128, kernel_size = (1,5), stride = (1,4), padding=(0,2)),
+            torch.nn.AvgPool2d((1,2), stride=(1,2), padding=(0,0)),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+        )
+        
+        def get_fc_input_size():
+            is_layer_conv = lambda x: isinstance(x, nn.Conv2d) or isinstance(x, nn.AvgPool2d)
+            layers = list(filter(is_layer_conv, [*self.conv1, *self.conv2, *self.conv3]))
+            
+            output_size = input_size
+            last_layer_output_planes = 1
+            for layer in layers:
+                output_size = get_conv_output_size(output_size, **vars(layer))
+                last_layer_output_planes = layer.out_channels if hasattr(layer, "out_channels") else last_layer_output_planes
+            
+            return output_size * last_layer_output_planes
+
+        self.fc = nn.Sequential(
+            nn.Linear(256, 256), # input=640
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            
+            nn.Linear(256, 128),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            
+            nn.Linear(128, 8),
+        )
+        self.quant1 = torch.quantization.QuantStub()
+        self.dequant1 = torch.quantization.DeQuantStub()
+        
+
+    def forward(self, x):
+        x = self.quant1(x)
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        
+        x = x.flatten(1)
+
+        x = self.fc(x)
+        self.dequant1(x)
+        return x

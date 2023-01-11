@@ -11,7 +11,7 @@ import json
 from utils.db6 import DB6MultiSession
 from utils.utils import SuperSet
 from utils.model import ViT_quantized as ViT
-from utils.model import TEMPONet as TEMPONet
+from utils.model import TEMPONet_quantized as TEMPONet
 from utils.download_DB6 import download_file
 from utils.utils import get_loss_preds
 from utils.train import train 
@@ -213,20 +213,43 @@ def main_QAT(chunk_idx, args):
         
         net_fp32.eval()
         net_fp32.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
-
+        
+        torch.manual_seed(2023)
         model_fp32_prepared = torch.quantization.prepare_qat(net_fp32.train())
         losses_accs = train(net=model_fp32_prepared, net_name=f"{name_prefix}_{chunk_idx}", ds=ds, k=0, bootstrap=bootstrap, training_config=config['training_config'], test_ds=test_ds_5, device = device, save_model_every_n = save_model_every_n)
         result['losses_accs'] = losses_accs
         
         # calibrate the prepared model to determine quantization parameters for activations
         # in a real world setting, the calibration would be done with a representative dataset
-        torch.manual_seed(2023)
+        
         model_fp32_prepared.eval()
         model_int8 = torch.quantization.convert(model_fp32_prepared)
 
         criterion = nn.CrossEntropyLoss()
         test_losses, y_preds, y_trues, outs = [], [], [], []
+        torch.manual_seed(0)
+        for test_ds in test_datasets_steady:
+            test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
+            test_loss, (y_pred, y_true, out) = get_loss_preds(model_fp32_prepared, criterion, test_loader, device = device)
+            test_losses.append(test_loss)
+            y_preds.append(y_pred.cpu())
+            y_trues.append(y_true.cpu())
+            outs.append(out)
+        result['test_losses_steady'] = test_losses
+        result['y_preds_steady'] = y_preds
+        result['y_trues_steady'] = y_trues
+        result['outs_steady'] = outs
+        results[f'val-fold'] = result
+        correct = 0
+        total = 0
+        for i in np.arange(5):
+            correct+= sum(y_preds[i]==y_trues[i])
+            total+= len(y_preds[i])
+        acc = correct/total*100
+        print(f"Accuracy of subject Quantized {subject}: {acc}")
 
+        criterion = nn.CrossEntropyLoss()
+        test_losses, y_preds, y_trues, outs = [], [], [], []
         torch.manual_seed(0)
         for test_ds in test_datasets_steady:
             test_loader = DataLoader(test_ds, batch_size=1024, shuffle=False, pin_memory=False, drop_last=False)
@@ -246,8 +269,7 @@ def main_QAT(chunk_idx, args):
             correct+= sum(y_preds[i]==y_trues[i])
             total+= len(y_preds[i])
         acc = correct/total*100
-        print(f"Accuracy of subject Quantized {subject}: {acc}")
-
+        print(f"Accuracy of subject Quantized and converted {subject}: {acc}")
 
         criterion = nn.CrossEntropyLoss()
         test_losses, y_preds, y_trues, outs = [], [], [], []
@@ -417,7 +439,6 @@ if __name__ == '__main__':
     parser.add_argument('--ch_1', default = 14, type=int)
     parser.add_argument('--ch_2', default = 'None', type=int)
     parser.add_argument('--ch_3', default = 'None', type=int)
-    parser.add_argument('--subjects', default = 1, type = int)
     parser.add_argument('--pretrain', default = 'True')
     parser.add_argument('--finetune', default = 'False')
     # Parse the command-line arguments
@@ -425,7 +446,9 @@ if __name__ == '__main__':
     if args.network == "TEMPONet":
         name_prefix = f"artifacts/temponet"
     else:
-        name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.patch_size1}_{args.patch_size2}_{args.patch_size3}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
+        # name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.patch_size1}_{args.patch_size2}_{args.patch_size3}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
+        name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
+
     try:
         with open('config.json', 'r') as f:
             config = json.load(f)
@@ -454,12 +477,8 @@ if __name__ == '__main__':
     else:
         finetune = False
 
-    if args.subjects == 1:
-        i_begin = 0
-        i_end = 5
-    else:
-        i_begin = 5
-        i_end = 10
+    i_begin = 0
+    i_end = 10
 
     if False:
         results = None

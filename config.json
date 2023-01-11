@@ -1,5 +1,5 @@
 {
-    "dataset_dir": "/m100_work/IscrC_AdHeNAS/db6/",
-    "device": "cuda",
+    "dataset_dir": "./DB6/",
+    "device": "cpu",
     "gpu_number": "1"
 }
