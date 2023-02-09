@@ -19,7 +19,7 @@ from utils.configs import configs_pretrain, configs_finetune, configs_finetune_n
 import argparse
 
 PROCESSES = 1
-save_model_every_n = 5
+save_model_every_n = 20
 name_prefix = f"None"
 
 def extend_results(results, result):
@@ -205,7 +205,10 @@ def main_QAT(chunk_idx, args):
         results['train_sessions'] = train_sessions
         results['test_sessions'] = test_sessions
         result = {}
-        net_fp32 = ViT(**config)
+        if args.network == "TEMPONet":
+            net_fp32 = TEMPONet()
+        elif args.network == "ViT":
+            net_fp32 = ViT(**config)
         config['pretrained'] = f"{name_prefix}_{subject - 1}_epoch20.pth"
         if config['pretrained'] is not None:
             net_fp32.load_state_dict(torch.load(config['pretrained'], map_location=torch.device('cpu')))
@@ -444,10 +447,10 @@ if __name__ == '__main__':
     # Parse the command-line arguments
     args = parser.parse_args()
     if args.network == "TEMPONet":
-        name_prefix = f"artifacts/temponet"
+        name_prefix = f"artifacts/temponet_"
     else:
-        # name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.patch_size1}_{args.patch_size2}_{args.patch_size3}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
-        name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
+        name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.patch_size1}_{args.patch_size2}_{args.patch_size3}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
+        # name_prefix = f"artifacts/ViT_{args.tcn_layers}_{args.blocks}_{args.dim_head}_{args.heads}_{args.depth}_{args.ch_1}_{args.ch_2}_{args.ch_3}"
 
     try:
         with open('config.json', 'r') as f:

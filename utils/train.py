@@ -57,6 +57,13 @@ def train(net, net_name, ds, k, bootstrap, training_config, test_ds=None, ds_add
             optimizer.step()        
         scheduler.step()
 
+        if epoch > 3:
+            # Freeze quantizer parameters
+            net.apply(torch.ao.quantization.disable_observer)
+        if epoch > 2:
+            # Freeze batch norm mean and variance estimates
+            net.apply(torch.nn.intrinsic.qat.freeze_bn_stats)
+
         net.eval()
         train_loss, (y_pred, y_true, out) = get_loss_preds(net, criterion, train_loader_, device = device)
         train_preds = y_pred.bincount(minlength=(y_true.max() + 1))

@@ -130,10 +130,10 @@ configs_quantization = {
     "pretrained": True,
     "training_config": [
         {
-         "epochs": 5,
+         "epochs": 10,
          "batch_size": 64,
          "optim": "Adam",
-         "optim_hparams": {"lr": 1e-4, "betas": (.9, .999), "weight_decay": 0},
+         "optim_hparams": {"lr": 5e-5, "betas": (.9, .999), "weight_decay": 0},
          "lr_scheduler": "StepLR",
          "lr_scheduler_hparams": {"gamma": .1, "step_size": 10},
         },

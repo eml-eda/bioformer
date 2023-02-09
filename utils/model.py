@@ -513,5 +513,5 @@ class TEMPONet_quantized(nn.Module):
         x = x.flatten(1)
 
         x = self.fc(x)
-        self.dequant1(x)
+        x = self.dequant1(x)
         return x
